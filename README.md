@@ -5,7 +5,7 @@
 
 > An end-to-end framework for detecting, mapping, and prioritizing floating marine debris in coastal waters using Sentinel-2 satellite imagery and deep learning.
 
-![Marine debris]([https://tse1.mm.bing.net/th/id/OIP.76LKw52GtH_aeqq4cWOZfgHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3](https://i.pinimg.com/736x/77/d7/d3/77d7d304f1d50614b32ec3db97905e25.jpg))
+![Marine debris]([https://i.pinimg.com/736x/77/d7/d3/77d7d304f1d50614b32ec3db97905e25.jpg])
 
 ---
 
