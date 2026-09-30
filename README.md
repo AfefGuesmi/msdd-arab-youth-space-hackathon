@@ -313,7 +313,7 @@ Quantitative and qualitative evaluation is documented in:
 
 Visual examples of the model predictions are available here:
 
-[Qualitative Results Folder](https://drive.google.com/drive/folders/YOUR-DRIVE-FOLDER-ID)
+[Qualitative Results Folder](https://drive.google.com/drive/folders/1ZAEIuOSuvwX1IzzUXeZEm4ezCXIxMIRT?usp=drive_link)
 
 Each scene contains:
 
