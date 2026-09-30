@@ -248,16 +248,15 @@ mssd-arab-youth-space-hackathon/
 ### Clone the Model Branch
 
 ```bash
-git clone -b mssd-net https://github.com/YOUR-USERNAME/mssd-arab-youth-space-hackathon.git
+git clone -b mssd-net https://github.com/AfefGuesmi/mssd-arab-youth-space-hackathon.git
 ```
 
 ### Clone the Application Branch
 
 ```bash
-git clone -b mssd-app https://github.com/YOUR-USERNAME/mssd-arab-youth-space-hackathon.git
+git clone -b mssd-app https://github.com/AfefGuesmi/mssd-arab-youth-space-hackathon.git
 ```
 
-Replace `YOUR-USERNAME` with the GitHub username or organization containing the repository.
 
 ---
 
