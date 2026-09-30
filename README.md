@@ -477,7 +477,7 @@ Documentation is released under **CC BY 4.0**, unless otherwise specified.
 | [`RESULTS.md`](docs/RESULTS.md)                                                    | Model evaluation         |
 | [`TECHNICAL_DOCUMENT.md`](docs/TECHNICAL_DOCUMENT.md)                              | Technical documentation  |
 | [Marine Debris — NOAA](https://marinedebris.noaa.gov/)                             | Marine debris background |
-| [Qualitative Results](https://drive.google.com/drive/folders/YOUR-DRIVE-FOLDER-ID) | Visual predictions       |
+| [Qualitative Results](https://drive.google.com/drive/folders/1ZAEIuOSuvwX1IzzUXeZEm4ezCXIxMIRT?usp=drive_link) | Visual predictions       |
 
 ---
 
