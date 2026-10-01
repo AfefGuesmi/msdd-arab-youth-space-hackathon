@@ -1,19 +1,19 @@
-# MSSD Framework — Technical Document
+# MSSD Framework: -Technical Document
 
 **Marine Surface Debris Surveillance**
-**Arab Youth Space Hackathon — 813 Challenge**
+**Arab Youth Space Hackathon-813 Challenge**
 **Theme 03: Marine & Water Security**
 
 ---
 
 ## 1. Overview
 
-The **MSSD Framework** is an Earth observation and deep learning pipeline designed to detect and map potential floating marine debris in satellite imagery.
+The **MSSD Framework** is an Earth observation and deep learning pipeline that detects and maps potential floating marine debris in satellite imagery.
 
 The framework consists of two main components:
 
-1. **MSSD-Net** — a semantic segmentation model based on the Swin-UNet V2 architecture.
-2. **MSSD-App** — an application layer for visualizing model predictions and supporting geospatial analysis.
+1. **MSSD-Net**: a semantic segmentation model based on the Swin-UNet V2 architecture.
+2. **MSSD-App**: an application layer for visualizing model predictions and supporting geospatial analysis.
 
 This document describes the dataset, preprocessing, model architecture, training procedure, evaluation methodology, results, limitations, and future development directions.
 
