@@ -1,16 +1,16 @@
-# MSSD — Marine Surface Debris Surveillance
+# MSSD: Marine Surface Debris Surveillance
 
-**Arab Youth Space Hackathon — 813 Challenge**
+**Arab Youth Space Hackathon - 813 Challenge**
 **Theme 03: Marine & Water Security**
 
-> An end-to-end framework for detecting, mapping, and prioritizing floating marine debris in coastal waters using Sentinel-2 satellite imagery and deep learning.
+> An end-to-end framework to detect, map, and prioritize floating marine debris in coastal waters using Sentinel-2 satellite imagery and deep learning.
 
 ![Marine debris](https://i.pinimg.com/736x/77/d7/d3/77d7d304f1d50614b32ec3db97905e25.jpg)
 ---
 
 ## Overview
 
-**Marine Surface Debris Surveillance (MSSD)** is an Earth observation and deep learning framework designed to detect and map potential floating marine debris in coastal waters.
+**Marine Surface Debris Surveillance (MSSD)** is an Earth observation and deep learning framework that detects and maps potential floating marine debris in coastal waters.
 
 The system combines **Sentinel-2 multispectral imagery, spectral indices, texture features, transformer-based semantic segmentation, and geospatial post-processing** to transform satellite observations into actionable debris maps.
 
@@ -117,12 +117,12 @@ The input includes six Sentinel-2 bands:
 
 Six additional features are derived from the spectral bands:
 
-* NDVI — Normalized Difference Vegetation Index
-* NDWI — Normalized Difference Water Index
-* NDCI — Normalized Difference Chlorophyll Index
+* NDVI: Normalized Difference Vegetation Index
+* NDWI: Normalized Difference Water Index
+* NDCI: Normalized Difference Chlorophyll Index
 * Turbidity
-* FAI — Floating Algae Index
-* FDI — Floating Debris Index
+* FAI: Floating Algae Index
+* FDI: Floating Debris Index
 
 #### Texture Features
 
@@ -459,12 +459,12 @@ Documentation is released under **CC BY 4.0**, unless otherwise specified.
 
 ## Team
 
-**Arab Youth Space Hackathon — 813 Challenge**
+**Arab Youth Space Hackathon - 813 Challenge**
 **Theme 03: Marine & Water Security**
 
-* **Your Name** — Role
-* **Teammate Name** — Role
-* **Teammate Name** — Role
+* **Besma Guesmi** - Tech Lead
+* **Afef Guesmi** - ML R&D, PhD Student in EO
+* **Dorra Guesmi** - Full Stack Engineer
 
 ---
 
@@ -483,9 +483,9 @@ Documentation is released under **CC BY 4.0**, unless otherwise specified.
 
 ## Hackathon Project
 
-**MSSD — Marine Surface Debris Surveillance**
+**MSSD: Marine Surface Debris Surveillance**
 
-**Arab Youth Space Hackathon — 813 Challenge, 2026**
+**Arab Youth Space Hackathon-813 Challenge, 2026**
 **Theme 03: Marine & Water Security**
 
 > From satellite imagery to actionable marine-debris intelligence.
