@@ -1,0 +1,16 @@
+variant,patch_id,debris_type,danger_level,debris_pixels,debris_percent,latitude,longitude,recommended_action,report_date
+baseline,patch_0019,Plastic,Low,482,0.74,24.1000,53.7700,Monitor via routine satellite pass,2026-10-06 12:31
+baseline,patch_0012,Plastic,Low,228,0.35,24.1100,53.7700,Monitor via routine satellite pass,2026-10-06 12:31
+baseline,patch_0014,Plastic,Low,77,0.12,24.1200,53.7700,Monitor via routine satellite pass,2026-10-06 12:31
+baseline,patch_0006,Plastic,Low,68,0.10,24.1300,53.7700,Monitor via routine satellite pass,2026-10-06 12:31
+baseline,patch_0003,Plastic,Low,39,0.06,24.1400,53.7700,Monitor via routine satellite pass,2026-10-06 12:31
+full,patch_0019,Plastic,High,9625,14.69,24.1000,53.7800,Deploy specialized cleanup vessels,2026-10-06 12:31
+full,patch_0009,Plastic,Low,193,0.29,24.1100,53.7800,Monitor via routine satellite pass,2026-10-06 12:31
+full,patch_0011,Plastic,Low,96,0.15,24.1200,53.7800,Monitor via routine satellite pass,2026-10-06 12:31
+full,patch_0002,Plastic,Low,80,0.12,24.1300,53.7800,Monitor via routine satellite pass,2026-10-06 12:31
+full,patch_0006,Plastic,Low,80,0.12,24.1400,53.7800,Monitor via routine satellite pass,2026-10-06 12:31
+only_residual,patch_0019,Plastic,Low,355,0.54,24.1000,53.7900,Monitor via routine satellite pass,2026-10-06 12:31
+only_residual,patch_0012,Plastic,Low,197,0.30,24.1100,53.7900,Monitor via routine satellite pass,2026-10-06 12:31
+only_residual,patch_0014,Plastic,Low,45,0.07,24.1200,53.7900,Monitor via routine satellite pass,2026-10-06 12:31
+only_residual,patch_0003,Plastic,Low,27,0.04,24.1300,53.7900,Monitor via routine satellite pass,2026-10-06 12:31
+only_residual,patch_0006,Plastic,Low,23,0.04,24.1400,53.7900,Monitor via routine satellite pass,2026-10-06 12:31
