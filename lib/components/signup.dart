@@ -111,7 +111,10 @@ class _SignUpPageState extends State<SignUpPage> {
         default:
           _showMessage("Something went wrong. Please try again.");
       }
-    } catch (_) {
+    } catch (e, st) {
+      // Printed to the debug console (and the browser console on the web),
+      // so the real cause isn't hidden behind the generic message.
+      debugPrint("Authentication error: $e\n$st");
       if (!mounted) return;
       _showMessage("Something went wrong. Please try again.");
     } finally {

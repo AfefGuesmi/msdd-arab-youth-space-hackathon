@@ -1,13 +1,13 @@
 # MSDD — Ocean Debris Detection App
 
-MSDD is a Flutter app that shows where marine debris was detected in satellite imagery. The detections are read from a CSV report, grouped into zones, and drawn on an interactive map. Each zone has a danger level, a recommended action and a qualitative-result image, and can be exported as a PDF report.
+MSDD is a Flutter app that shows where marine debris was detected in satellite imagery. The detections are read from a CSV report, grouped into zones, and drawn on an interactive map. Each zone has a danger level, a recommended action and an image, and can be exported as a PDF report.
 
 ## Features
 
 - **Interactive map** with a dark basemap. Zone icons appear when you zoom in and follow the area you move to.
 - **Danger colours**: red = alert (high), orange = warning (medium), yellow = notice (low).
 - **Detected zones sidebar**: every zone in a list. Selecting one zooms the map to it and shows its details and image. Tapping the zone on the map opens a popup.
-- **Reports sidebar**: download a PDF for one zone, or a global PDF for all zones (details table, with the image under it).
+- **Reports sidebar**: download a PDF for one zone, or a global PDF for all zones (one area per page: details table, with the image under it).
 - **Notifications sidebar**: one notification per detected area (Alert / Warning / Notice). Tapping one jumps to that area.
 - **Accounts**: sign up and sign in, stored locally in SQLite (salted, hashed passwords). Sign up goes straight to the map; sign out is in the menu.
 - **Assistant** icon in the menu ("Ask MSDD Assistant"). It has no page yet.
@@ -88,7 +88,9 @@ Exact package versions are in `pubspec.yaml`.
    
 ## Run with Docker
 
-The Docker image builds the **web** version of the app and serves it with nginx. (Docker cannot run the Android/iOS version.)
+The Docker image builds the **web** version of the app and serves it with nginx. Docker cannot run the Android/iOS version.
+
+> **Important:** the Docker version is a browser version with limited features (no phone notifications; accounts are stored in the browser, not on the device). **For all the functionalities, it is better to run the app on an Android device** (see "Run without Docker").
 
 ### One-time preparation (browser support for accounts)
 

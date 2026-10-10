@@ -119,8 +119,6 @@ class ZonesSidebar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        _sectionLabel("Qualitative result"),
-        const SizedBox(height: 8),
         // Tap the image to open it full size and pinch to zoom.
         GestureDetector(
           onTap: imagePath == null
