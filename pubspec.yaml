@@ -1,0 +1,40 @@
+name: msdd
+description: "A new Flutter project."
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.0
+  flutter_local_notifications: ^17.2.2
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  sqflite: ^2.3.3
+  path: ^1.9.0
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/bg.png
+    - assets/images/1.jpeg
+    - assets/images/2.avif
+    - assets/images/3.jpg
+    - assets/images/4.jpeg
+    - assets/images/1.png
+    - assets/qualitative_results/r1.png
+    - assets/qualitative_results/r2.png
+    - assets/qualitative_results/r3.png
+    - assets/files/
