@@ -30,25 +30,6 @@ MSDD is a Flutter app that shows where marine debris was detected in satellite i
 
 Exact package versions are in `pubspec.yaml`.
 
-## How the data is used
-
-The zones come from `assets/files/mssd_debris_report.csv`, read when the map opens. One row = one detected object.
-
-| Column               | Meaning                                                                                                          |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `Debris Type`        | e.g. Plastic, Fishing Nets, Chemical Waste                                                                       |
-| `Danger Level`       | High / Medium / (Low)                                                                                            |
-| `Geolocation`        | `"northing, easting"` in metres (UTM), **not** latitude/longitude                                                |
-| `Recommended Action` | text shown in the popup and reports                                                                              |
-| `Report Date`        | not used                                                                                                         |
-| `Source_File`        | contains the satellite tile code (e.g. `16PCC` = UTM zone 16, northern hemisphere), used to convert the position |
-
-Processing (`components/csv_zones_loader.dart`):
-
-1. Each position is converted from UTM to latitude/longitude.
-2. Detections of the same debris type in the same ~11 km cell are merged into one zone (cell size: `_cellDegrees`, 0.1°). The zone centre is the average position and its outline is drawn around its detections.
-3. Zones are sorted by danger, then by size, and the three images `r1.png`, `r2.png`, `r3.png` are assigned in turn.
-
 ## Requirements
 
 **To run without Docker**
@@ -65,29 +46,6 @@ Processing (`components/csv_zones_loader.dart`):
 - Free port `8080` (changeable).
 - Several GB of free disk space for the build image.
 
-## Project layout
-
-```
-msdd/
-├── lib/
-│   ├── main.dart                 # routes: / , /signin , /signup
-│   └── components/
-│       ├── home.dart             # welcome page + "About the app" popup
-│       ├── signin.dart, signup.dart
-│       ├── auth_service.dart, user_database.dart   # SQLite accounts
-│       ├── map.dart              # map, radial menu, sliding panels
-│       ├── csv_zones_loader.dart # CSV → zones
-│       ├── danger_style.dart     # danger colours / wording
-│       ├── zones_sidebar.dart, reports_sidebar.dart,
-│       │   notifications_sidebar.dart, popup_widget.dart, zone_image.dart
-├── assets/
-│   ├── images/1.png              # home page background
-│   ├── files/mssd_debris_report.csv
-│   └── qualitative_results/r1.png, r2.png, r3.png
-├── pubspec.yaml
-├── Dockerfile, nginx.conf, docker-compose.yml, .dockerignore
-└── README.md
-```
 
 ## Run without Docker
 
@@ -127,9 +85,7 @@ msdd/
    flutter build apk --release        # Android APK  → build/app/outputs/flutter-apk/
    flutter build web --release        # web files    → build/web/
    ```
-
-> Asset changes (new files, changes in `pubspec.yaml`) are **not** picked up by hot reload. Stop the app and run it again.
-
+   
 ## Run with Docker
 
 The Docker image builds the **web** version of the app and serves it with nginx. (Docker cannot run the Android/iOS version.)
