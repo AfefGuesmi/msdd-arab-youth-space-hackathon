@@ -1,4 +1,4 @@
-# MSDD — Ocean Debris Detection App
+# MSDD - Marine Debris Detection App
 
 MSDD is a Flutter app that shows where marine debris was detected in satellite imagery. The detections are read from a CSV report, grouped into zones, and drawn on an interactive map. Each zone has a danger level, a recommended action and a qualitative-result image, and can be exported as a PDF report.
 

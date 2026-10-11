@@ -1,0 +1,39 @@
+.git
+.gitignore
+.venv
+venv
+env
+
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.pytest_cache
+.mypy_cache
+
+# Datasets and outputs (mounted from the host at runtime)
+msdd_net/data
+MADOS
+MADOS_nearest
+trained_models
+cache
+logs
+qualitative_results
+pretrained
+*.tif
+*.tiff
+*.zip
+*.h5
+*.pth
+*.joblib
+
+# Editor and OS cruft
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Notebooks and scratch
+*.ipynb
+*.log
