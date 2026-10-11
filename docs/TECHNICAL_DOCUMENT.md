@@ -1,380 +1,383 @@
-# MSSD Framework — Technical Document
+# MSSD Framework, Technical Document
 
-**Marine Surface Debris Surveillance**
-**Arab Youth Space Hackathon — 813 Challenge**
-**Theme 03: Marine & Water Security**
+**Marine Surface Debris Detection**
+**Arab Youth Space Hackathon, 813 Challenge**
+**Theme 03: Marine and Water Security**
 
 ---
 
 ## 1. Overview
 
-The **MSSD Framework** is an Earth observation and deep learning pipeline designed to detect and map potential floating marine debris in satellite imagery.
+The MSSD Framework is an Earth observation and deep learning pipeline designed to detect and map potential floating marine debris in satellite imagery.
 
 The framework consists of two main components:
 
-1. **MSSD-Net** — a semantic segmentation model based on the Swin-UNet V2 architecture.
-2. **MSSD-App** — an application layer for visualizing model predictions and supporting geospatial analysis.
+1. MSSD-Net: a semantic segmentation model based on the Swin-UNet V2 architecture with three optional architectural extensions.
+2. MSSD-App: an application layer for visualizing model predictions and supporting geospatial analysis.
 
-This document describes the dataset, preprocessing, model architecture, training procedure, evaluation methodology, results, limitations, and future development directions.
+This document describes the datasets, preprocessing, model architecture, training procedure, evaluation methodology, results, limitations, and future development directions.
 
-Three MSSD-Net variants were trained and evaluated:
+Multiple MSSD-Net variants were trained and evaluated as an ablation study:
 
-* `baseline`
-* `only_residual`
-* `full`
+- baseline
+- +dilated
+- +dilated+attention
+- full
+- only_dilated
+- only_attention
+- only_residual
 
-The experiments provide an ablation study of the additional architectural components introduced into the baseline network.
-
----
-
-# 2. Data Description
-
-## 2.1 Data Source
-
-The project uses **Sentinel-2 Level-2A (L2A) surface reflectance imagery**, accessed through the **Microsoft Planetary Computer STAC API**.
-
-Sentinel-2 provides multispectral observations suitable for characterizing coastal and marine surface conditions.
+The headline numbers are reported for baseline, full, and only_residual.
 
 ---
 
-## 2.2 Study Area
+## 2. Data Description
 
-The dataset covers coastal and open-water regions represented in the labelled dataset.
+### 2.1 Data Sources
 
-The Sentinel-2 spectral input contains the following 11 bands:
+Two public, expert-annotated Sentinel-2 benchmarks are used:
 
-```text
-B01, B02, B03, B04, B05, B06,
-B07, B08, B8A, B11, B12
+| Dataset | Source | Patches | Patch size | Classes |
+| ------- | ------ | ------: | ---------: | ------: |
+| MARIDA | Kikaki et al., PLOS ONE 2022 | 1,381 | 256 x 256, 10 m | 15 native, 11 after aggregation |
+| MADOS | Kikaki et al., 2024 | 2,803 | 240 x 240, padded to 256 | 15 native, remapped to MARIDA's 11 |
+
+MARIDA is split by scene into 694 train, 328 val, and 359 test patches.
+
+MADOS is split by scene into 96 train, 36 val, and 42 test scenes.
+
+For UAE deployment, Sentinel-2 L2A imagery over the Arabian Gulf is retrieved through the Microsoft Planetary Computer STAC API and processed using the same pipeline as MARIDA and MADOS.
+
+### 2.2 Study Area
+
+The training and evaluation data cover coastal and open-water regions represented across:
+
+- Central America (Motagua, Ulua, La Ceiba, Roatan)
+- Caribbean (Haiti, Santo Domingo)
+- Atlantic (Scotland)
+- Indian Ocean (Durban, Bali)
+- Southeast Asia (Jakarta, Danang, Manila)
+- East Asia (Yangtze, Nakdong)
+
+UAE and Arabian Gulf imagery is used only at deployment time, not for training or test evaluation.
+
+### 2.3 Input Features
+
+Each pixel is represented using up to 19 input channels:
+
+- 11 Sentinel-2 spectral bands (B1, B2, B3, B4, B5, B6, B7, B8, B8A, B11, B12)
+- 6 derived spectral indices (NDVI, NDWI, NDMI, BSI, FAI, FDI), optional
+- 2 texture features (13 by 13 local standard deviation, Sobel gradient magnitude), optional
+
+The raw 11 bands are always used. The indices and texture features are enabled with `--use_spectral_indices True` and `--use_texture_features True`.
+
+The Random Forest baselines use a different, paper-faithful feature set: 11 bands plus 8 spectral indices (NDVI, FAI, FDI, SI, NDWI, NRD, NDMI, BSI) plus 6 GLCM textures (contrast, dissimilarity, homogeneity, energy, correlation, ASM) over a 13 by 13 window, giving 25 features per pixel.
+
+### 2.4 Labels
+
+The 11-class surface-type taxonomy used for training and evaluation is:
+
+| Index | Class |
+| ----: | ----- |
+| 0 | Marine Debris |
+| 1 | Dense Sargassum |
+| 2 | Sparse Sargassum |
+| 3 | Natural Organic Material |
+| 4 | Ship |
+| 5 | Clouds |
+| 6 | Marine Water |
+| 7 | Sediment-Laden Water |
+| 8 | Foam |
+| 9 | Turbid Water |
+| 10 | Shallow Water |
+
+Waves, Cloud Shadows, Wakes, and Mixed Water are merged into Marine Water, matching the MARIDA paper.
+
+MADOS is remapped into the same 11-class space through a fixed crosswalk. Four MADOS classes (Oil Spills, Oil Platforms, Jellyfish Aggregations, Sea Snot) have no MARIDA equivalent and their pixels are labeled -1 and ignored. Full crosswalk in `docs/PREPROCESSING.md`.
+
+### 2.5 Class Distribution
+
+The dataset is heavily imbalanced. On the MARIDA training set, Marine Debris is approximately 0.45% of labeled pixels. On the evaluated MADOS test split, Marine Debris accounts for 973 out of 352,546 valid pixels (approximately 0.28%).
+
+This imbalance is handled at training time by:
+
+- Weighted cross-entropy with per-class weights w_c = 1 / ln(1.03 + p_c) for the U-Net baseline, and w_c = 1 / ln(1.02 + p_c) for MSSD-Net
+- Optional rare-class oversampling through WeightedRandomSampler
+- Optional copy-paste augmentation for rare classes
+- Combined CE + Dice loss for MSSD-Net
+
+### 2.6 Augmentation
+
+Training-time augmentation:
+
+- Random rotation from {-90, 0, 90, 180} degrees
+- Random horizontal flip
+- Optional spectral jitter (multiply each raw band by an independent factor in [0.95, 1.05])
+- Optional rare-class copy-paste
+- Optional rare-class oversampling
+
+Validation and test use only `ToTensor()`, no augmentation.
+
+---
+
+## 3. Model Description
+
+### 3.1 Base Architecture
+
+MSSD-Net is built on Swin-UNet V2, which combines hierarchical transformer feature extraction with a U-Net style encoder-decoder. The encoder uses Swin V2 transformer blocks with scaled cosine attention and shifted windows, and progressively merges patches. The decoder mirrors the encoder with patch expansion and skip fusion.
+
+Default configuration:
+
+| Setting | Value |
+| ------- | ----- |
+| Patch size | 4 |
+| Embed dim | 96 |
+| Encoder depths | [2, 2, 2, 2] |
+| Decoder depths | [1, 2, 2, 2] |
+| Num heads | [3, 6, 12, 24] |
+| Window size | 8 |
+| Input size | 256 x 256 |
+
+### 3.2 Optional Architectural Components
+
+Three optional components can be toggled independently.
+
+#### DilatedBottleneck
+
+An ASPP-style multi-scale dilated convolution module placed at the encoder bottleneck. Uses three parallel branches with dilation rates 1, 2, 4, plus a global-average-pooling branch. Branch outputs are concatenated, projected back to the input channel width, and added to the input through a residual connection.
+
+Motivation: enlarged receptive field without losing spatial resolution, which is useful for thin elongated debris trails that pure window attention can miss.
+
+#### AttentionRefinement
+
+A CBAM-style channel and spatial attention gate placed after encoder-decoder fusion in each decoder stage. Channel attention uses average and max pooling followed by a small shared MLP. Spatial attention uses a 7 by 7 convolution over channel-wise average and max maps.
+
+Motivation: suppress background clutter (foam, sun glint, turbid water) and emphasize debris-relevant regions.
+
+#### Residual Skip Fusion
+
+The standard decoder fusion becomes an identity-plus-residual form:
+
 ```
-
-The bands are spatially aligned during preprocessing before being provided to the model.
-
----
-
-## 2.3 Input Features
-
-Each pixel is represented using **19 input channels**:
-
-* **11 Sentinel-2 spectral bands**
-* **6 derived spectral indices**
-* **2 texture features**
-
-### Spectral bands
-
-```text
-B01, B02, B03, B04, B05, B06,
-B07, B08, B8A, B11, B12
-```
-
-### Spectral indices
-
-* NDVI
-* NDWI
-* NDCI
-* Turbidity
-* FAI
-* FDI
-
-### Texture features
-
-* Local standard deviation
-* Gradient magnitude proxy
-
-The resulting feature representation is:
-
-```text
-11 spectral bands
-       +
-6 spectral indices
-       +
-2 texture features
-       ↓
-19 input channels
-```
-
----
-
-## 2.4 Labels
-
-The segmentation task uses an **11-class surface-type taxonomy**:
-
-1. Marine Debris
-2. Dense Sargassum
-3. Sparse Sargassum
-4. Natural Organic Material
-5. Ship
-6. Clouds
-7. Marine Water
-8. Sediment-Laden Water
-9. Foam
-10. Turbid Water
-11. Shallow Water
-
-The model therefore performs multi-class semantic segmentation at pixel level.
-
----
-
-## 2.5 Class Distribution
-
-The dataset is highly imbalanced.
-
-Marine Debris represents approximately **0.28% of the evaluated test pixels**, corresponding to:
-
-* **973 Marine Debris pixels**
-* **352,546 valid test pixels in total**
-
-This severe class imbalance is an important characteristic of the problem because the target class occupies only a small fraction of the satellite imagery.
-
-The training objective therefore combines **weighted Cross-Entropy and Dice loss** to improve learning of minority classes.
-
----
-
-# 3. Model Description — MSSD-Net
-
-## 3.1 Base Architecture
-
-MSSD-Net uses a **Swin-UNet V2** architecture for semantic segmentation.
-
-The architecture combines hierarchical transformer-based feature extraction with a U-Net-style encoder-decoder structure.
-
-The encoder extracts progressively higher-level spatial and semantic representations, while the decoder reconstructs spatial detail required for pixel-level classification.
-
----
-
-## 3.2 Proposed Architectural Components
-
-Three optional architectural components were investigated:
-
-### DilatedBottleneck
-
-An ASPP-style multi-scale dilated-convolution module is inserted at the encoder bottleneck.
-
-The module uses multiple dilation rates to increase the effective receptive field while preserving spatial resolution.
-
-A residual connection is used around the bottleneck module.
-
-### AttentionRefinement
-
-A CBAM-style attention mechanism is introduced in the decoder after encoder-decoder feature fusion.
-
-It combines:
-
-* Channel attention
-* Spatial attention
-
-The objective is to allow the network to emphasize informative features while suppressing less relevant spatial responses.
-
-### Residual Skip Fusion
-
-The standard decoder fusion is modified from:
-
-```text
-F_dec = Linear(Concat(F_enc, F_up))
-```
-
-to:
-
-```text
 F_dec = F_up + Linear(Concat(F_enc, F_up))
 ```
 
-where:
+where F_enc is the encoder skip, F_up is the upsampled decoder feature, and F_dec is the resulting decoder feature.
 
-* `F_enc` represents encoder features
-* `F_up` represents upsampled decoder features
-* `F_dec` represents the resulting decoder features
+Motivation: give the fused feature an identity shortcut around the fusion projection, easing optimization of the deep decoder stack.
 
----
+### 3.3 Experimental Variants
 
-## 3.3 Experimental Variants
+| Variant | Dilated bottleneck | Attention refinement | Residual fusion |
+| ------- | :----------------: | :------------------: | :-------------: |
+| baseline | | | |
+| +dilated | X | | |
+| +dilated+attention | X | X | |
+| full | X | X | X |
+| only_dilated | X | | |
+| only_attention | | X | |
+| only_residual | | | X |
 
-Three model configurations were trained:
+The baseline is exactly equivalent to the plain Swin-UNet V2 forward pass, with no additional parameters.
 
-| Variant         | Architecture                                                                    |
-| --------------- | ------------------------------------------------------------------------------- |
-| `baseline`      | Swin-UNet V2 without the proposed components                                    |
-| `only_residual` | Swin-UNet V2 + residual skip fusion                                             |
-| `full`          | Swin-UNet V2 + dilated bottleneck + attention refinement + residual skip fusion |
+### 3.4 Model Size
 
-The variants allow the contribution of the additional architectural components to be evaluated empirically.
+- Plain Swin-UNet V2 baseline: approximately 27 million trainable parameters
+- Full MSSD-Net: approximately 29 million trainable parameters (the three added modules account for the difference)
 
----
+Training time on a single NVIDIA T4 GPU, at 256 x 256 input resolution and batch size 8, is approximately 6 to 10 hours for 150 epochs. U-Net converges faster (about 1 hour for 45 epochs) because of its much smaller parameter count.
 
-## 3.4 Model Size
+### 3.5 Initialization
 
-Each variant contains approximately **29 million trainable parameters**.
+The Swin encoder is initialized from the ImageNet-pretrained `swinv2_tiny_patch4_window8_256.pth` checkpoint, downloaded automatically by `training_utils.ensure_pretrained_checkpoint()`.
 
-Training required approximately **4 hours per experiment on a single NVIDIA T4 GPU**, depending on the training configuration and runtime environment.
+The pretrained patch embedding convolution takes 3 input channels (RGB). It is adapted to the 11 or 19 channel input by averaging the 3 RGB filters into a single channel-agnostic filter and repeating it across the target input channel count. This is the standard trick for reusing RGB ImageNet weights on multispectral input.
 
----
-
-# 4. Training Procedure
-
-| Setting                | Configuration                 |
-| ---------------------- | ----------------------------- |
-| Architecture           | Swin-UNet V2                  |
-| Optimizer              | AdamW                         |
-| Initial learning rate  | 1 × 10⁻⁴                      |
-| Learning-rate schedule | Cosine decay                  |
-| Batch size             | 4–8 patches                   |
-| Loss                   | Weighted Cross-Entropy + Dice |
-| Input size             | 256 × 256                     |
-| Input channels         | 19                            |
-| Test-time augmentation | 180° rotation                 |
-| Random seed            | 42                            |
-
-The same experimental seed and evaluation procedure were used across the three model variants.
+All other encoder tensors (transformer blocks, norms) load by exact name and shape match. The decoder, MSSD-specific modules, and output head have no ImageNet counterpart and are randomly initialized.
 
 ---
 
-# 5. Quantitative Results
+## 4. Training Procedure
 
-Evaluation was performed on a held-out spatial test split containing:
+| Setting | U-Net baseline | MSSD-Net |
+| ------- | :------------: | :------: |
+| Optimizer | Adam | Adam |
+| Initial learning rate | 2e-4 | 1e-4 |
+| Encoder LR multiplier | n/a | 0.1 |
+| LR schedule | MultiStep at epoch 40, gamma 0.1 | Cosine, 5 warmup epochs |
+| Weight decay | 0 | 1e-4 |
+| Batch size | 5 | 8 |
+| Epochs | 45 | 150 |
+| Early stopping patience | none | 25 |
+| Loss | Weighted CE | Weighted CE + Dice (0.5 each) |
+| CE weight parameter c | 1.03 | 1.02 |
+| Input size | 256 x 256 | 256 x 256 |
+| Input channels | 11 to 19 | 11 to 19 |
+| Random seed | 0 | 0 |
+| Test-time augmentation | none | 0 and 180 degree rotation |
 
-* **352,546 valid pixels**
-* **728 patches**
+The U-Net recipe follows the MARIDA paper exactly. The MSSD-Net recipe is our own, tuned for a 27M-parameter transformer with ImageNet init.
 
-The Cloud class is excluded from macro-averaged metrics because the test split contains no Cloud annotations.
+Both models use:
+- Fixed normalization statistics (`BANDS_MEAN`, `BANDS_STD`) applied only to the raw bands
+- `ignore_index=-1` in the loss so unlabeled pixels are skipped
+- Same augmentation space at training time
 
-## 5.1 Variant Comparison
+### Loss functions
 
-| Variant       | Marine Debris F1 | Marine Debris IoU |   Macro F1 | Macro mIoU |
-| ------------- | ---------------: | ----------------: | ---------: | ---------: |
-| **baseline**  |       **69.06%** |        **52.74%** | **75.31%** | **64.69%** |
-| only_residual |           67.53% |            50.98% |     74.88% |     64.07% |
-| full          |           56.77% |            39.63% |     71.69% |     60.11% |
+Weighted cross-entropy:
 
-The **baseline** provides the strongest Marine Debris performance among the evaluated variants.
-
-Compared with the `full` model:
-
-* Marine Debris F1 is **12.29 percentage points higher**
-* Marine Debris IoU is **13.11 percentage points higher**
-* Macro F1 is **3.62 percentage points higher**
-* Macro mIoU is **4.58 percentage points higher**
-
----
-
-## 5.2 Per-Class Results — Baseline
-
-| Class                    | Precision | Recall |         F1 |        IoU | Support |
-| ------------------------ | --------: | -----: | ---------: | ---------: | ------: |
-| Marine Debris            |    59.05% | 83.14% | **69.06%** | **52.74%** |     973 |
-| Dense Sargassum          |    97.86% | 92.22% |     94.96% |     90.40% |   1,786 |
-| Sparse Sargassum         |    20.45% |  6.47% |      9.84% |      5.17% |     278 |
-| Natural Organic Material |    77.65% | 90.60% |     83.63% |     71.86% |   3,574 |
-| Ship                     |    59.08% | 87.75% |     70.62% |     54.58% |  51,528 |
-| Marine Water             |    94.39% | 75.89% |     84.14% |     72.62% | 145,866 |
-| Sediment-Laden Water     |    91.54% | 99.05% |     95.15% |     90.74% |  93,254 |
-| Foam                     |    94.21% | 79.84% |     86.43% |     76.11% |     387 |
-| Turbid Water             |    93.79% | 75.17% |     83.45% |     71.61% |  42,168 |
-| Shallow Water            |    67.38% | 86.81% |     75.87% |     61.12% |  12,732 |
-
-### Aggregate Metrics
-
-* **Macro F1:** 75.31%
-* **Macro mIoU:** 64.69%
-* **Overall pixel accuracy:** 84.26%
-
----
-
-# 6. Interpretation
-
-## 6.1 Marine Debris Detection
-
-The most important result is that the **baseline Swin-UNet V2 achieved the strongest Marine Debris performance** among the three evaluated variants.
-
-The baseline achieved:
-
-```text
-Marine Debris F1   = 69.06%
-Marine Debris IoU  = 52.74%
-Precision           = 59.05%
-Recall              = 83.14%
+```
+L_CE = -sum_c w_c * y_c * log(p_c)
 ```
 
-The `full` architecture achieved a Marine Debris F1 of **56.77%**.
+with class weights `w_c = 1 / ln(c_param + p_c)`, where `p_c` is the pixel frequency of class c in the training set. `c_param` is 1.03 for the U-Net baseline (paper value) and 1.02 for MSSD-Net.
 
-This corresponds to a difference of approximately **12.3 percentage points** in F1.
+Dice loss, used only in the combined CE + Dice for MSSD-Net, computes the soft Dice score per class over annotated pixels and averages over classes present in the batch.
 
-Therefore, the additional architectural components investigated in this experiment did not improve the target Marine Debris class.
-
----
-
-## 6.2 Effect on Other Classes
-
-The additional architecture was not uniformly detrimental across all classes.
-
-For example, the `full` model achieved a substantially higher **Ship F1** than the baseline:
-
-```text
-Baseline Ship F1 = 70.62%
-Full Ship F1     = 85.42%
+```
+L_Dice = 1 - 2 * sum(p * y) / (sum(p) + sum(y))
 ```
 
-This suggests that the additional receptive-field and attention mechanisms may benefit classes with larger or more spatially coherent structures.
+Combined loss:
 
-However, the same mechanisms did not translate into improved performance for the sparse Marine Debris target.
-
-This illustrates an important property of the task: **architectural complexity does not necessarily improve performance for small, sparse targets under severe class imbalance.**
-
----
-
-## 6.3 Strengths
-
-The baseline performs particularly well on several classes:
-
-* **Sediment-Laden Water:** 95.15% F1
-* **Dense Sargassum:** 94.96% F1
-* **Foam:** 86.43% F1
-* **Natural Organic Material:** 83.63% F1
-
-Marine Debris recall reaches **83.14%**, indicating that the model identifies a substantial proportion of the labelled debris pixels.
-
----
-
-## 6.4 Weaknesses
-
-The most challenging class is **Sparse Sargassum**, with:
-
-```text
-F1 = 9.84%
-IoU = 5.17%
-Support = 278 pixels
+```
+L = 0.5 * L_CE + 0.5 * L_Dice
 ```
 
-The limited number of examples makes reliable learning of this class difficult.
+---
 
-Marine Debris also exhibits a precision-recall trade-off:
+## 5. Quantitative Results
 
-```text
-Precision = 59.05%
-Recall    = 83.14%
+Evaluation was performed on a held-out spatial test split.
+
+| Property | Value |
+| -------- | ----: |
+| Valid pixels | 352,546 |
+| Patches | 728 |
+| Test-time augmentation | 180 degree rotation |
+
+Clouds is excluded from macro-averaged metrics because the evaluated test split contains no Cloud annotations.
+
+### 5.1 Variant Comparison
+
+| Variant | Marine Debris F1 | Marine Debris IoU | Macro F1 | Macro mIoU |
+| ------- | ---------------: | ----------------: | -------: | ---------: |
+| **baseline** | **69.06%** | **52.74%** | **75.31%** | **64.69%** |
+| only_residual | 67.53% | 50.98% | 74.88% | 64.07% |
+| full | 56.77% | 39.63% | 71.69% | 60.11% |
+
+The baseline provides the strongest Marine Debris performance among the evaluated variants. Relative to the full model:
+
+- Marine Debris F1 is 12.29 percentage points higher
+- Marine Debris IoU is 13.11 percentage points higher
+- Macro F1 is 3.62 percentage points higher
+- Macro mIoU is 4.58 percentage points higher
+
+### 5.2 Per-Class Results, Baseline
+
+| Class | Precision | Recall | F1 | IoU | Support |
+| ----- | --------: | -----: | -: | --: | ------: |
+| Marine Debris | 59.05% | 83.14% | **69.06%** | **52.74%** | 973 |
+| Dense Sargassum | 97.86% | 92.22% | 94.96% | 90.40% | 1,786 |
+| Sparse Sargassum | 20.45% | 6.47% | 9.84% | 5.17% | 278 |
+| Natural Organic Material | 77.65% | 90.60% | 83.63% | 71.86% | 3,574 |
+| Ship | 59.08% | 87.75% | 70.62% | 54.58% | 51,528 |
+| Clouds | n/a | n/a | n/a | n/a | 0 |
+| Marine Water | 94.39% | 75.89% | 84.14% | 72.62% | 145,866 |
+| Sediment-Laden Water | 91.54% | 99.05% | 95.15% | 90.74% | 93,254 |
+| Foam | 94.21% | 79.84% | 86.43% | 76.11% | 387 |
+| Turbid Water | 93.79% | 75.17% | 83.45% | 71.61% | 42,168 |
+| Shallow Water | 67.38% | 86.81% | 75.87% | 61.12% | 12,732 |
+
+Aggregate:
+
 ```
-
-The relatively high recall is useful for a screening-oriented application, but the lower precision means that predictions require subsequent inspection or validation.
+Macro F1       : 75.31%
+Macro mIoU     : 64.69%
+Pixel Accuracy : 84.26%
+```
 
 ---
 
-# 7. Qualitative Results
+## 6. Interpretation
 
-Qualitative predictions were generated for **20 held-out patches per model variant**.
+### 6.1 Marine Debris Detection
+
+The baseline achieves:
+
+```
+Marine Debris F1   : 69.06%
+Marine Debris IoU  : 52.74%
+Precision          : 59.05%
+Recall             : 83.14%
+```
+
+The full architecture achieves Marine Debris F1 of 56.77%, a difference of approximately 12.3 percentage points. The additional architectural components did not improve the target class on this test split.
+
+### 6.2 Effect on Other Classes
+
+The additional architecture is not uniformly detrimental across all classes. For example, the full model achieves a substantially higher Ship F1:
+
+```
+Baseline Ship F1 : 70.62%
+Full Ship F1     : 85.42%
+```
+
+This suggests that the enlarged receptive field and attention mechanisms help classes with larger, more spatially coherent structures. The same mechanisms do not translate to better performance on the sparse Marine Debris target.
+
+### 6.3 Strengths
+
+The baseline performs particularly well on:
+
+- Sediment-Laden Water: 95.15% F1
+- Dense Sargassum: 94.96% F1
+- Foam: 86.43% F1
+- Natural Organic Material: 83.63% F1
+
+Marine Debris recall reaches 83.14%, so the model identifies most labeled debris pixels.
+
+### 6.4 Weaknesses
+
+The most challenging class is Sparse Sargassum:
+
+```
+F1      : 9.84%
+IoU     : 5.17%
+Support : 278 pixels
+```
+
+The limited number of examples makes this class difficult to learn reliably.
+
+Marine Debris shows a precision-recall trade-off:
+
+```
+Precision : 59.05%
+Recall    : 83.14%
+```
+
+The high recall is useful for a screening application. The lower precision means that predictions should be treated as candidates for further inspection.
+
+---
+
+## 7. Qualitative Results
+
+Qualitative predictions were generated for 20 held-out patches per model variant.
 
 Each example contains:
 
-* RGB input
-* Reference segmentation
-* Model prediction
-* Combined visualization
+- RGB input (B4, B3, B2 composite)
+- Reference segmentation over a dimmed RGB
+- Model prediction
+- Combined visualization
 
-Full qualitative results are available here:
+Full qualitative results are on Google Drive:
 
-**[Qualitative Results Folder](https://drive.google.com/drive/folders/YOUR-DRIVE-FOLDER-ID)**
+[Qualitative Results Folder](https://drive.google.com/drive/folders/REPLACE-WITH-FIGURES-FOLDER-ID)
 
-The folder is organized as:
+Directory structure:
 
-```text
+```
 qualitative_results/
 ├── baseline/
 │   ├── legend.png
@@ -384,104 +387,63 @@ qualitative_results/
 │   │   ├── prediction.png
 │   │   └── combined.png
 │   └── ...
-│
 ├── full/
 │   └── ...
-│
 └── only_residual/
     └── ...
 ```
 
----
+### 7.1 Observed Behaviour
 
-## 7.1 Observed Behaviour
+True positives: the model reliably detects relatively dense debris regions that produce a distinguishable spectral response.
 
-### True Positives
+False positives: thin foam structures, shoreline features, ship-wake turbulence, and other high-contrast surface structures.
 
-The model reliably detects some relatively dense debris regions, particularly where the debris produces a distinguishable spectral response.
-
-### False Positives
-
-Potential false-positive patterns include:
-
-* Thin foam structures
-* Shoreline features
-* Ship-wake turbulence
-* Other high-contrast surface structures
-
-### False Negatives
-
-Detection becomes more difficult when:
-
-* Debris occupies only a very small number of pixels.
-* Debris is below or close to the effective spatial resolution.
-* The surrounding water is highly turbid.
-* Spectral contrast between debris and water is weak.
+False negatives: when debris occupies very few pixels, when it is close to the effective spatial resolution, when the surrounding water is highly turbid, or when spectral contrast between debris and water is weak.
 
 ---
 
-# 8. Limitations
-
-Several limitations should be considered when interpreting the results.
+## 8. Limitations
 
 ### 8.1 Class Imbalance
 
-Marine Debris represents only a small fraction of the evaluated pixels, while several background classes contain substantially more observations.
-
-This imbalance makes the task inherently difficult and motivates the use of weighted Cross-Entropy and Dice loss.
+Marine Debris is a small fraction of evaluated pixels, while several background classes contain far more observations. This imbalance is handled through weighted loss and optional oversampling, but it remains a fundamental difficulty.
 
 ### 8.2 Sparse Classes
 
-Sparse Sargassum has only 278 test pixels and performs poorly.
-
-Additional labelled examples would be required before drawing strong conclusions about this class.
+Sparse Sargassum has only 278 test pixels and performs poorly. Additional labeled examples would be required before drawing strong conclusions about this class.
 
 ### 8.3 Spatial Generalization
 
-The reported evaluation is based on the available held-out spatial test split.
-
-Performance across substantially different geographic regions, environmental conditions, and acquisition periods has not yet been established.
+Reported evaluation is on the available held-out spatial test split. Performance across substantially different geographic regions and environmental conditions has not yet been established. Cross-dataset evaluation on MADOS is provided as a partial generalization check but does not replace a fully independent regional evaluation.
 
 ### 8.4 Spectral Ambiguity
 
-Different materials can exhibit similar spectral responses at Sentinel-2 spatial and spectral resolution.
-
-In particular, distinguishing floating debris from some forms of foam, organic material, or other floating surface features remains challenging.
+Different materials can produce similar spectral responses at Sentinel-2's spatial and spectral resolution. Distinguishing floating debris from some forms of foam, organic material, or other floating surface features remains challenging.
 
 ### 8.5 Temporal Information
 
-The current system evaluates satellite scenes independently.
-
-It does not yet track debris detections across multiple Sentinel-2 observations.
+The current system evaluates scenes independently and does not track debris detections across multiple Sentinel-2 observations.
 
 ### 8.6 Architectural Ablation
 
-The evaluated `full` architecture does not improve the target Marine Debris metrics relative to the baseline.
-
-Consequently, the baseline is currently the preferred experimental checkpoint for the target detection task.
+The full architecture does not improve the target class metrics relative to the baseline on the evaluated test split. The baseline is currently the preferred checkpoint for the target detection task.
 
 ---
 
-# 9. Future Work
-
-Future development directions include:
+## 9. Future Work
 
 ### Improved Class-Imbalance Handling
 
-Investigate:
-
-* Focal loss
-* Class-balanced sampling
-* Hard-example mining
-* Minority-class augmentation
+Investigate focal loss, class-balanced sampling, hard-example mining, and minority-class augmentation.
 
 ### Higher-Resolution and Hyperspectral Data
 
-Investigate whether higher spectral or spatial resolution can improve discrimination between marine debris and spectrally similar materials.
+Investigate whether higher spectral or spatial resolution can improve discrimination between debris and spectrally similar materials.
 
 ### Multi-Sensor Fusion
 
-Integrate complementary observations such as **Sentinel-1 SAR** to provide information independent of optical cloud conditions.
+Integrate Sentinel-1 SAR to provide information that is independent of optical cloud conditions.
 
 ### Temporal Modelling
 
@@ -493,63 +455,81 @@ Add calibrated confidence or uncertainty estimates to distinguish high-confidenc
 
 ### Geographic Generalization
 
-Evaluate the model on geographically independent regions and acquisition dates to better characterize its generalization capability.
+Evaluate the model on geographically independent regions and acquisition dates.
 
 ---
 
-# 10. Reproducibility
+## 10. Reproducibility
 
 ### Code
 
-The project source code is organized across the following branches:
-
-* `main`
-* `mssd-net`
-* `mssd-app`
+Project source is organized under `msdd_net/`. Training, evaluation, and figure-generation scripts are all self-contained.
 
 ### Data
 
-The project uses Sentinel-2 L2A imagery and labelled segmentation patches accessed through the project's data pipeline.
+MARIDA and MADOS are public datasets. Both are hosted on Google Drive mirrors:
+
+| Dataset | Link |
+| ------- | ---- |
+| MARIDA (Zenodo) | https://zenodo.org/record/5151941 |
+| MADOS (Zenodo) | https://zenodo.org/records/10430388 |
+| MARIDA mirror (Google Drive) | https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID |
+| MADOS stacked (Google Drive) | https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID |
 
 ### Checkpoints
 
-The evaluated checkpoints are:
+Trained checkpoints are hosted on Google Drive:
 
-```text
-trained_models/swin-unet-mados/CE-Dice/
-├── swin_unetv2_baseline_pretrained.pth
-├── swin_unet_full_pretrained.pth
-└── swin_unet_only_residual_pretrained.pth
+| Artifact | Description | Link |
+| -------- | ----------- | ---- |
+| `checkpoints.zip` | All trained checkpoints (U-Net, RF, all MSSD-Net variants) | https://drive.google.com/drive/folders/REPLACE-WITH-CKPT-FOLDER-ID |
+
+After unzipping, `trained_models/` at the repository root should be populated with the following layout:
+
+```
+trained_models/
+├── unet/
+│   └── best_model.pth
+├── rf_ss_si_glcm/
+│   ├── rf.joblib
+│   ├── results.json
+│   └── predictions/
+├── baseline/
+│   └── best_model.pth
+├── full/
+│   └── best_model.pth
+└── only_residual/
+    └── best_model.pth
 ```
 
 ### Evaluation Results
 
-Evaluation outputs are stored in:
+Per-class metric JSONs are written by `evaluation_swin_unetv2.py` and `evaluate_on_mados.py` to:
 
-```text
+```
 logs/
-├── evaluating_on_mados_baseline_tta_results.json
-├── evaluating_on_mados_full_tta_results.json
-└── evaluating_on_mados_only_residual_tta_results.json
+├── evaluating_swin_baseline_tta_results.json
+├── evaluating_swin_full_tta_results.json
+└── evaluating_swin_only_residual_tta_results.json
 ```
 
 ### Reproducibility Settings
 
-```text
-Random seed: 42
-Test-time augmentation: 180° rotation
-Input size: 256 × 256
-Input channels: 19
+```
+Random seed             : 0
+Test-time augmentation  : 0 and 180 degree rotation
+Input size              : 256 x 256
+Input channels          : 11 / 13 / 17 / 19 (depending on flags)
 ```
 
 ---
 
-# 11. Conclusion
+## 11. Conclusion
 
-The experiments demonstrate that a relatively standard **Swin-UNet V2 baseline** can achieve meaningful Marine Debris segmentation performance on the evaluated dataset, reaching **69.06% F1** and **52.74% IoU** for the target class.
+A relatively standard Swin-UNet V2 baseline achieves meaningful Marine Debris segmentation performance on the evaluated test split, reaching 69.06% F1 and 52.74% IoU for the target class.
 
-Importantly, the additional architectural components evaluated in this study did not improve Marine Debris detection. The `full` architecture achieved stronger performance on some other classes, including Ship, but reduced performance on the sparse Marine Debris target.
+The additional architectural components investigated in this study did not improve Marine Debris detection. The full architecture achieves stronger performance on some other classes, including Ship, but reduces performance on the sparse Marine Debris target.
 
-This result highlights the importance of evaluating architectural modifications against the **specific operational target**, particularly in highly imbalanced remote-sensing segmentation problems.
+This result highlights the importance of evaluating architectural modifications against the specific operational target, particularly in highly imbalanced remote-sensing segmentation problems.
 
-For the current MSSD system, the **baseline checkpoint is therefore used as the headline model for Marine Debris detection**, while the other variants are retained as experimental ablations.
+For the current MSSD system, the baseline checkpoint is used as the headline model for Marine Debris detection. The other variants are retained as experimental ablations.

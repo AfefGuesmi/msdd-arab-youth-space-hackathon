@@ -4,6 +4,7 @@
 *.tif
 *.tiff
 *.nc
+*.txt
 data/
 raw/
 processed/
@@ -13,13 +14,15 @@ processed/
 *.pt
 *.ckpt
 checkpoints/
+pretrained/
+trained_models
 
 # Environment
 .env
 venv/
 __pycache__/
 *.pyc
-
+cache
 # Notebooks
 .ipynb_checkpoints/
 

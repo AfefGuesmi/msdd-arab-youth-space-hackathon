@@ -1,493 +1,573 @@
-# MSSD — Marine Surface Debris Surveillance
+# MSSD: Marine Surface Debris Detection
 
-**Arab Youth Space Hackathon — 813 Challenge**
-**Theme 03: Marine & Water Security**
+**Arab Youth Space Hackathon, 813 Challenge**
+**Theme 03: Marine and Water Security**
 
-> An end-to-end framework for detecting, mapping, and prioritizing floating marine debris in coastal waters using Sentinel-2 satellite imagery and deep learning.
+An end-to-end framework for detecting, mapping, and prioritizing floating marine debris in coastal waters from Sentinel-2 imagery using deep learning.
 
-![Marine debris](https://tse1.mm.bing.net/th/id/OIP.76LKw52GtH_aeqq4cWOZfgHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3)
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Problem Statement](#problem-statement)
+- [Method](#method)
+- [Data](#data)
+- [Repository Structure](#repository-structure)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Training](#training)
+- [Evaluation](#evaluation)
+- [Qualitative Figures](#qualitative-figures)
+- [Docker](#docker)
+- [Results](#results)
+- [Pretrained Checkpoints](#pretrained-checkpoints)
+- [Limitations](#limitations)
+- [Future Work](#future-work)
+- [Team](#team)
+- [License](#license)
 
 ---
 
 ## Overview
 
-**Marine Surface Debris Surveillance (MSSD)** is an Earth observation and deep learning framework designed to detect and map potential floating marine debris in coastal waters.
+Marine Surface Debris Detection (MSSD) is an Earth observation and deep learning framework that detects and maps potential floating marine debris in coastal waters.
 
-The system combines **Sentinel-2 multispectral imagery, spectral indices, texture features, transformer-based semantic segmentation, and geospatial post-processing** to transform satellite observations into actionable debris maps.
+The system combines Sentinel-2 multispectral imagery, spectral indices, texture features, transformer-based semantic segmentation, and geospatial post-processing to turn satellite observations into actionable debris maps for environmental monitoring agencies, researchers, and coastal cleanup teams.
 
-The goal is to provide environmental monitoring agencies, researchers, and coastal cleanup teams with a scalable tool for identifying areas that may require further inspection and response.
+### Pipeline
 
-### MSSD Pipeline
-
-```text
+```
 Sentinel-2 L2A Imagery
-        │
-        ▼
-┌──────────────────────────────┐
-│    Feature Engineering       │
-│                              │
-│  • Spectral bands            │
-│  • Spectral indices          │
-│  • Texture features          │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│          MSSD-Net            │
-│  Transformer Segmentation    │
-│                              │
-│  Debris / Water / Other      │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│       Post-processing        │
-│                              │
-│  • Morphological filtering   │
-│  • Connected components      │
-│  • Confidence estimation     │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│          MSSD-App            │
-│                              │
-│  • Debris maps               │
-│  • Risk visualization        │
-│  • Reports & exports         │
-└──────────────────────────────┘
+        |
+        v
+Feature Engineering (spectral bands, indices, texture)
+        |
+        v
+MSSD-Net (transformer segmentation)
+        |
+        v
+Post-processing (morphology, connected components, confidence)
+        |
+        v
+MSSD-App (debris maps, risk visualization, reports)
 ```
 
 ---
 
 ## Problem Statement
 
-Floating marine debris, particularly plastic waste, poses a major threat to marine ecosystems, fisheries, biodiversity, and coastal economies.
+Floating marine debris, especially plastic waste, threatens marine ecosystems, fisheries, biodiversity, and coastal economies. Traditional monitoring relies on ship surveys, aerial observations, and manual inspections, which are expensive and hard to scale.
 
-Traditional marine debris monitoring often relies on:
+Satellite remote sensing offers a scalable alternative, but debris occupies only a small fraction of an image and can resemble natural phenomena such as foam, algae, turbid water, suspended sediment, and sun glint. This is a hard detection and class imbalance problem.
 
-* Ship-based surveys
-* Aerial observations
-* Manual field inspections
-
-These methods can be expensive, time-consuming, and difficult to scale over large coastal regions.
-
-Satellite remote sensing provides a scalable alternative. However, detecting floating debris from satellite imagery is challenging because debris may occupy only a small portion of an image and can have spectral and spatial characteristics similar to natural ocean-surface phenomena.
-
-Potential sources of confusion include:
-
-* Ocean foam
-* Floating algae
-* Turbid water
-* Suspended sediment
-* Sun glint
-* Atmospheric and sensor effects
-
-This creates a challenging detection and class-imbalance problem.
-
-### Objective
-
-**Detect and spatially map potential floating marine debris from satellite imagery so that environmental monitoring and cleanup teams can prioritize areas for further inspection.**
+**Objective:** detect and spatially map potential floating marine debris so monitoring and cleanup teams can prioritize areas for further inspection.
 
 ---
 
-## Proposed Solution
+## Method
 
-The MSSD framework consists of three main components:
+### MSSD-Net
 
-### 1. MSSD-Net
+A transformer-based semantic segmentation model producing pixel-level debris probabilities from combined spectral, derived, and spatial features.
 
-**MSSD-Net** is a transformer-based semantic segmentation model that produces pixel-level debris probabilities.
+**Input bands:** 11 atmospherically corrected Sentinel-2 bands used by MARIDA and MADOS. B9 (water vapour) and B10 (cirrus) are excluded.
 
-The model uses a combination of spectral, derived, and spatial features.
+| Band | Description | Band | Description |
+| ---- | ----------- | ---- | ----------- |
+| B1 | Coastal aerosol | B6 | Red edge 2 |
+| B2 | Blue | B7 | Red edge 3 |
+| B3 | Green | B8 | Near infrared |
+| B4 | Red | B8A | Narrow NIR |
+| B5 | Red edge 1 | B11 / B12 | Short-wave infrared |
 
-#### Sentinel-2 Spectral Bands
+**Optional spectral indices** (`--use_spectral_indices True`):
+NDVI, NDWI, NDMI, BSI, FAI, FDI.
 
-The input includes six Sentinel-2 bands:
+**Optional texture features** (`--use_texture_features True`):
+13x13 local standard deviation, Sobel gradient magnitude.
 
-| Band | Description         |
-| ---- | ------------------- |
-| B02  | Blue                |
-| B03  | Green               |
-| B04  | Red                 |
-| B08  | Near Infrared       |
-| B11  | Short-Wave Infrared |
-| B12  | Short-Wave Infrared |
+### Post-processing
 
-#### Spectral Indices
+Raw model predictions are cleaned with morphological filtering, connected-component analysis, noise removal, spatial grouping, and confidence estimation to produce candidate debris regions with location and confidence metadata.
 
-Six additional features are derived from the spectral bands:
+### Baselines
 
-* NDVI — Normalized Difference Vegetation Index
-* NDWI — Normalized Difference Water Index
-* NDCI — Normalized Difference Chlorophyll Index
-* Turbidity
-* FAI — Floating Algae Index
-* FDI — Floating Debris Index
+Two baselines from the MARIDA paper (Kikaki et al., PLOS ONE 2022) are reproduced for comparison:
 
-#### Texture Features
-
-The framework also incorporates spatial texture information:
-
-* Local variance
-* Entropy
-* Edge density
-
-These features provide additional spatial context that can help distinguish potential debris from surrounding water and other surface phenomena.
-
----
-
-### 2. Post-processing
-
-The raw model predictions are processed to produce cleaner and more interpretable detections.
-
-The post-processing pipeline includes:
-
-* Morphological filtering
-* Connected-component analysis
-* Noise removal
-* Spatial grouping
-* Confidence estimation
-
-The final output is a set of candidate debris regions together with their spatial location and confidence information.
-
----
-
-### 3. MSSD-App
-
-The application layer transforms model predictions into an interactive monitoring interface.
-
-The application is designed to provide:
-
-* Geolocated debris maps
-* Detection locations
-* Risk-level visualization
-* Confidence information
-* Downloadable reports
-
-This creates a bridge between AI-based image segmentation and practical environmental monitoring.
+- **U-Net**: 4 down / 4 up encoder-decoder, narrow bottleneck, weighted cross-entropy.
+- **Random Forest**: pixel-level features (11 bands, 8 spectral indices, 6 GLCM textures), StandardScaler pipeline, 125 trees, depth 20, `balanced_subsample` class weights, annotator-confidence sample weights.
 
 ---
 
 ## Data
 
-MSSD uses **Copernicus Sentinel-2 Level-2A surface reflectance imagery** over coastal waters of the **Arabian Gulf, UAE**.
+Two public, expert-annotated Sentinel-2 benchmarks for marine debris are used. UAE / Arabian Gulf imagery is used as the deployment area via the Microsoft Planetary Computer STAC API.
 
-The imagery is accessed through the **Microsoft Planetary Computer STAC API**.
+| Dataset | Patches | Patch size | Bands | Classes used | Split |
+| ------- | ------: | ---------- | ----- | ------------ | ----- |
+| MARIDA | 1,381 (63 scenes, 11 countries) | 256 x 256, 10 m | 11 | 11 | official 694 / 328 / 359, split by scene |
+| MADOS | 2,803 | 240 x 240, padded to 256 | 11 | mapped to MARIDA's 11 | official train / val / test |
 
-### Dataset Configuration
+**Classes (11):** Marine Debris, Dense Sargassum, Sparse Sargassum, Natural Organic Material, Ship, Clouds, Marine Water, Sediment-Laden Water, Foam, Turbid Water, Shallow Water.
+Waves, Cloud Shadows, Wakes and Mixed Water are merged into Marine Water, as in the MARIDA paper.
 
-| Feature            | Description                  |
-| ------------------ | ---------------------------- |
-| Satellite          | Sentinel-2                   |
-| Product            | Level-2A Surface Reflectance |
-| Study Area         | Arabian Gulf, UAE            |
-| Time Range         | 2025                         |
-| Spatial Resolution | 20 m                         |
-| Spectral Bands     | 6                            |
-| Derived Indices    | 6                            |
-| Texture Features   | 3                            |
+**Labels are sparse:** only hand-digitised polygons are labelled. Every other pixel is ignored during training and evaluation.
 
-### Model Input
+**Heavy class imbalance:** Marine Debris is only about 0.4% of labelled pixels. Training uses class weighting and optional rare-class oversampling.
 
-```text
-6 Sentinel-2 spectral bands
-            +
-6 spectral indices
-            +
-3 texture features
-            ↓
-15-channel feature representation
-            ↓
-        MSSD-Net
-```
+MADOS has no Clouds class, so Clouds is excluded from MADOS macro averages.
 
-Detailed preprocessing is documented in:
+### Dataset download
 
-[`docs/PREPROCESSING.md`](docs/PREPROCESSING.md)
+| Dataset | Link |
+| ------- | ---- |
+| MARIDA (Zenodo) | https://zenodo.org/record/5151941 |
+| MADOS (Zenodo) | https://zenodo.org/records/10430388 |
+
+After downloading MARIDA, unpack it so that `msdd_net/data/patches/` and `msdd_net/data/splits/` exist.
+
+For MADOS, run the bundled `utils/stack_patches.py` first, then pass the stacked folder (`MADOS_nearest`) as `--mados_path` and the original `MADOS/splits` folder as `--splits_path`.
 
 ---
 
 ## Repository Structure
 
-```text
-mssd-arab-youth-space-hackathon/
-│
-├── README.md
-│
-├── docs/
-│   ├── PREPROCESSING.md
-│   ├── RESULTS.md
-│   └── TECHNICAL_DOCUMENT.md
-│
-├── data/
-│   └── README.md
-│
-├── models/
-│   └── ...
-│
-├── notebooks/
-│   └── ...
-│
-├── src/
-│   └── ...
-│
-└── app/
-    └── ...
+```
+msdd-arab-youth-space-hackathon/
+|-- README.md
+|-- Dockerfile
+|-- docker-compose.yml
+|-- requirements.txt
+|-- .dockerignore
+|-- docs/
+|   |-- BASELINES.md
+|   |-- PREPROCESSING.md
+|   |-- RESULTS.md
+|   |-- TECHNICAL_DOCUMENT.md
+|-- msdd_net/
+|   |-- mssd_net.py                    MSSD-Net (Swin-UNet V2 + ablation modules)
+|   |-- swin_unet_v2.py                Swin Transformer V2 building blocks
+|   |-- unet.py                        MARIDA-paper U-Net baseline
+|   |-- rf_features.py                 RF features (bands, indices, dense GLCM)
+|   |-- dataloader.py                  MARIDA dataset loader
+|   |-- mados_dataloader.py            MADOS dataset loader + class crosswalk
+|   |-- training_utils.py              Losses, schedulers, optimizers
+|   |-- train_marida.py                Train U-Net or MSSD-Net on MARIDA
+|   |-- train_on_mados.py              Train MSSD-Net on MADOS
+|   |-- train_rf.py                    Train and evaluate Random Forest baselines
+|   |-- evaluation_swin_unetv2.py      MARIDA test evaluation (MSSD-Net / U-Net)
+|   |-- evaluate_on_mados.py           MADOS test evaluation
+|   |-- plot_qualitative.py            Multi-model qualitative figures (MARIDA)
+|   |-- generate_qualitative_results.py Per-patch triplets (MADOS)
+|   |-- utils/                         Config, metrics, CLI helpers, label maps
+|   |-- data/                          MARIDA data (patches/, splits/)
+|-- assets/                            App assets, debris report CSV
+|-- qualitative_results/               Saved figures
 ```
 
 ---
 
-## Repository Branches
+## Installation
 
-| Branch     | Purpose               | Contents                                      |
-| ---------- | --------------------- | --------------------------------------------- |
-| `main`     | Project documentation | README, technical documentation, results      |
-| `mssd-net` | Model development     | Preprocessing, training, inference, notebooks |
-| `mssd-app` | Application           | Streamlit/FastAPI interface, maps, reports    |
-
-### Clone the Model Branch
+Requires Python 3.9 or newer.
 
 ```bash
-git clone -b mssd-net https://github.com/YOUR-USERNAME/mssd-arab-youth-space-hackathon.git
-```
+git clone -b refactor/mssd-net-baselines https://github.com/AfefGuesmi/msdd-arab-youth-space-hackathon.git
+cd msdd-arab-youth-space-hackathon
 
-### Clone the Application Branch
+python -m venv .venv
+source .venv/bin/activate           # Windows: .venv\Scripts\activate
 
-```bash
-git clone -b mssd-app https://github.com/YOUR-USERNAME/mssd-arab-youth-space-hackathon.git
-```
-
-Replace `YOUR-USERNAME` with the GitHub username or organization containing the repository.
-
----
-
-## Getting Started
-
-### Requirements
-
-The project uses Python and common geospatial and deep learning libraries.
-
-Typical dependencies include:
-
-```text
-Python 3.x
-PyTorch
-Torchvision
-NumPy
-Rasterio
-OpenCV
-scikit-image
-GeoPandas
-Shapely
-Matplotlib
-```
-
-The application layer may additionally use:
-
-```text
-Streamlit
-FastAPI
-Folium
-```
-
-### Installation
-
-```bash
-git clone https://github.com/YOUR-USERNAME/mssd-arab-youth-space-hackathon.git
-
-cd mssd-arab-youth-space-hackathon
+# Install CUDA-enabled PyTorch first (adjust the CUDA version to your driver)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 pip install -r requirements.txt
 ```
 
-Update the installation and inference commands above according to the final repository implementation.
+Run every command below from inside `msdd_net/`:
+
+```bash
+cd msdd_net
+```
+
+---
+
+## Quick Start
+
+| Step | Command | Time |
+| ---- | ------- | ---- |
+| 1. Random Forest | `python train_rf.py --features ss_si_glcm` | minutes (CPU) |
+| 2. U-Net | `python train_marida.py --model unet` | ~1 h (GPU) |
+| 3. MSSD-Net | `python train_marida.py --model mssd --variant baseline` | ~6 h (GPU) |
+| 4. Evaluate | `python evaluation_swin_unetv2.py --model_type swin --variant baseline` | minutes |
+| 5. Figures | `python plot_qualitative.py --n_patches 6 --models ...` | minutes |
+
+---
+
+## Training
+
+### 1. Random Forest baselines
+
+Runs on CPU in minutes. No GPU required.
+
+```bash
+# Band-only features
+python train_rf.py --features ss
+
+# Bands + 8 spectral indices
+python train_rf.py --features ss_si
+
+# Full feature set (bands + indices + GLCM) -- best in the MARIDA paper
+python train_rf.py --features ss_si_glcm
+```
+
+Each run writes `trained_models/rf_<features>/`:
+
+- `rf.joblib`: fitted sklearn pipeline
+- `results.json`: per-class IoU, PA, F1, precision, plus averages
+- `predictions/<roi>.npy`: full-patch test predictions for plots
+
+Optional flags:
+
+```bash
+python train_rf.py --features ss_si_glcm \
+    --data_path data \
+    --splits_dir splits \
+    --n_estimators 125 --max_depth 20 \
+    --n_jobs 8 \
+    --predict_patches True
+```
+
+### 2. U-Net baseline (MARIDA paper recipe)
+
+```bash
+python train_marida.py --model unet --data_path data
+```
+
+Defaults match the paper:
+
+- Adam, lr `2e-4`, cut x0.1 after epoch 40
+- Batch 5, 45 epochs
+- Weighted cross-entropy with `w_c = 1 / ln(1.03 + p_c)`
+- Random rotations {-90, 0, 90, 180} + horizontal flips
+
+Override any of these explicitly if needed:
+
+```bash
+python train_marida.py --model unet \
+    --epochs 45 --batch 5 --lr 2e-4 \
+    --lr_steps "[40]" --weight_param 1.03
+```
+
+Checkpoints go to `trained_models/unet/best_model.pth`.
+
+### 3. MSSD-Net on MARIDA
+
+Defaults are automatically switched to a Swin-appropriate recipe (lr `1e-4`, batch 8, 150 epochs, cosine schedule with 5 warmup epochs, `ce_dice` loss, ImageNet pretrained encoder, patience 25).
+
+```bash
+# Plain Swin-UNet V2 baseline (best variant in our ablation)
+python train_marida.py --model mssd --variant baseline --data_path data
+
+# Full MSSD-Net (dilated bottleneck + attention refinement + residual fusion)
+python train_marida.py --model mssd --variant full --data_path data
+
+# Add spectral indices and texture features (17 or 19 input channels)
+python train_marida.py --model mssd --variant full \
+    --use_spectral_indices True \
+    --use_texture_features True
+```
+
+Available variants:
+
+| Variant | Dilated | Attention | Residual |
+| ------- | :-----: | :-------: | :------: |
+| `baseline` | | | |
+| `+dilated` | X | | |
+| `+dilated+attention` | X | X | |
+| `full` | X | X | X |
+| `only_dilated` | X | | |
+| `only_attention` | | X | |
+| `only_residual` | | | X |
+
+Checkpoints go to `trained_models/<variant>/best_model.pth`.
+
+Override any default:
+
+```bash
+python train_marida.py --model mssd --variant full \
+    --epochs 200 --batch 4 --lr 5e-5 \
+    --scheduler sgdr --weight_param 1.03 \
+    --patience 40 --encoder_lr_mult 1.0 \
+    --oversample_rare True --rare_classes 0,2,3,8
+```
+
+### 4. MSSD-Net on MADOS
+
+Requires MADOS to be downloaded and stacked (see [Data](#data)).
+
+```bash
+python train_on_mados.py \
+    --mados_path /path/to/MADOS_nearest \
+    --splits_path /path/to/MADOS/splits \
+    --variant baseline \
+    --loss_type ce_dice \
+    --use_spectral_indices True \
+    --use_texture_features True
+```
+
+Checkpoints go to `trained_models/mados_only/<variant>/best_model.pth`.
+
+---
+
+## Evaluation
+
+### MARIDA test set
+
+Works for both U-Net and MSSD-Net checkpoints. Writes a per-class report to `logs/` and full-resolution prediction masks to `data/predicted_masks/`.
+
+```bash
+# MSSD-Net
+python evaluation_swin_unetv2.py \
+    --model_type swin --variant baseline \
+    --model_path trained_models/baseline/best_model.pth \
+    --tta True --tta_rotations "[0,180]"
+
+# U-Net
+python evaluation_swin_unetv2.py \
+    --model_type unet --backbone none --hidden_channels 16 \
+    --model_path trained_models/unet/best_model.pth \
+    --tta False
+```
+
+If you trained with extra input channels, pass the same flags:
+
+```bash
+python evaluation_swin_unetv2.py \
+    --model_type swin --variant full \
+    --model_path trained_models/full/best_model.pth \
+    --use_spectral_indices True --use_texture_features True
+```
+
+### MADOS test set (cross-dataset check)
+
+```bash
+python evaluate_on_mados.py --dataset mados \
+    --variant baseline \
+    --model_path trained_models/mados_only/baseline/best_model.pth \
+    --mados_path /path/to/MADOS_nearest \
+    --mados_splits_path /path/to/MADOS/splits \
+    --use_spectral_indices True --use_texture_features True
+```
+
+This produces a generalization check on data from the same team that built MARIDA. Note that 4 MADOS classes (Oil Spills, Oil Platforms, Jellyfish, Sea Snot) have no MARIDA equivalent and are excluded, and Clouds is excluded from macro averages because MADOS does not annotate it.
+
+### Random Forest
+
+Evaluation is embedded in training. See `trained_models/rf_<features>/results.json` for per-class metrics, or rerun:
+
+```bash
+python train_rf.py --features ss_si_glcm \
+    --eval_splits val test \
+    --predict_patches True
+```
+
+---
+
+## Qualitative Figures
+
+### MARIDA multi-model comparison
+
+Puts RGB, reference labels, and every model's prediction side by side. Patches are chosen because they contain labelled Marine Debris, one per scene.
+
+```bash
+python plot_qualitative.py --data_path data --n_patches 6 --models \
+    "RF SS+SI+GLCM=trained_models/rf_ss_si_glcm/predictions" \
+    "U-Net=trained_models/unet/best_model.pth" \
+    "MSSD-Net=trained_models/baseline/best_model.pth"
+```
+
+Writes to `qualitative_results/marida_comparison/`:
+
+| File | Content |
+| ---- | ------- |
+| `comparison_all_classes.png` | RGB, reference labels over RGB, one prediction per model, with per-patch Marine Debris F1 |
+| `comparison_debris_focus.png` | Labelled debris outlined in yellow, predicted debris filled in red |
+| `patch_scores.json` | Per-patch, per-model Marine Debris F1 and accuracy |
+
+### MADOS per-patch triplets
+
+```bash
+python generate_qualitative_results.py \
+    --variant baseline \
+    --model_path trained_models/mados_only/baseline/best_model.pth \
+    --mados_path /path/to/MADOS_nearest \
+    --mados_splits_path /path/to/MADOS/splits \
+    --use_spectral_indices True --use_texture_features True \
+    --n_samples 20
+```
+
+Writes `input.png`, `label.png`, `prediction.png`, `combined.png` per patch to `qualitative_results/<variant>/`.
+
+**Boolean flags:** always pass `True` or `False` explicitly, e.g. `--tta False`.
+
+---
+
+## Docker
+
+Two images are provided: a CPU image for Random Forest and a CUDA image for training and inference. See `Dockerfile` and `docker-compose.yml` in the repository root.
+
+### Build
+
+```bash
+# CPU image (Random Forest, evaluation on CPU)
+docker build -t msdd:cpu --target cpu .
+
+# CUDA image (training + GPU inference, requires nvidia-container-toolkit)
+docker build -t msdd:gpu --target gpu .
+```
+
+### Run (Random Forest, CPU)
+
+```bash
+docker run --rm -it \
+    -v "$PWD/msdd_net/data:/workspace/msdd_net/data" \
+    -v "$PWD/trained_models:/workspace/msdd_net/trained_models" \
+    msdd:cpu \
+    python train_rf.py --features ss_si_glcm
+```
+
+### Run (MSSD-Net training, GPU)
+
+```bash
+docker run --rm -it --gpus all \
+    -v "$PWD/msdd_net/data:/workspace/msdd_net/data" \
+    -v "$PWD/trained_models:/workspace/msdd_net/trained_models" \
+    -v "$PWD/qualitative_results:/workspace/msdd_net/qualitative_results" \
+    msdd:gpu \
+    python train_marida.py --model mssd --variant baseline
+```
+
+### Run with docker-compose
+
+```bash
+# Random Forest
+docker compose run --rm rf
+
+# U-Net
+docker compose run --rm unet
+
+# MSSD-Net (needs GPU)
+docker compose run --rm mssd
+```
 
 ---
 
 ## Results
 
-Quantitative and qualitative evaluation is documented in:
+Full tables are in [`docs/RESULTS.md`](docs/RESULTS.md). The MARIDA baseline reproduction is in [`docs/BASELINES.md`](docs/BASELINES.md).
 
-[`docs/RESULTS.md`](docs/RESULTS.md)
+### Reference: MARIDA paper baselines (MARIDA test split)
 
-### Qualitative Results
+| Model | Marine Debris IoU | Marine Debris F1 | Mean IoU | Mean F1 |
+| ----- | ----------------: | ---------------: | -------: | ------: |
+| RF_SS | 0.55 | 0.71 | 0.57 | 0.69 |
+| RF_SS+SI | **0.67** | **0.80** | 0.59 | 0.70 |
+| RF_SS+SI+GLCM | 0.65 | 0.79 | **0.69** | **0.79** |
+| U-Net | 0.33 | 0.50 | 0.57 | 0.69 |
 
-Visual examples of the model predictions are available here:
+### MSSD-Net (MADOS test split)
 
-[Qualitative Results Folder](https://drive.google.com/drive/folders/YOUR-DRIVE-FOLDER-ID)
+| Variant | Marine Debris F1 | Marine Debris IoU | Macro F1 | Macro mIoU |
+| ------- | ---------------: | ----------------: | -------: | ---------: |
+| **baseline** | **69.06%** | **52.74%** | **75.31%** | **64.69%** |
+| only_residual | 67.53% | 50.98% | 74.88% | 64.07% |
+| full | 56.77% | 39.63% | 71.69% | 60.11% |
 
-Each scene contains:
-
-```text
-scene/
-├── input.png
-├── label.png
-└── prediction.png
-```
-
-| File             | Description                  |
-| ---------------- | ---------------------------- |
-| `input.png`      | Sentinel-2 RGB visualization |
-| `label.png`      | Reference debris mask        |
-| `prediction.png` | MSSD-Net predicted mask      |
+The two tables use different test sets (MARIDA vs MADOS), so their numbers cannot be compared directly. Run steps 1-5 in [Quick Start](#quick-start) to reproduce every model on the MARIDA test split.
 
 ---
 
-## Technical Documentation
+## Pretrained Checkpoints
 
-For a detailed description of the methodology, see:
+Pretrained weights and precomputed features are hosted on Google Drive:
 
-[`docs/TECHNICAL_DOCUMENT.md`](docs/TECHNICAL_DOCUMENT.md)
+| Artifact | Description | Link |
+| -------- | ----------- | ---- |
+| `marida_patches.zip` | MARIDA patches + splits | https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID |
+| `mados_nearest.zip` | MADOS stacked patches + splits | https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID |
+| `checkpoints.zip` | All trained checkpoints (U-Net, RF, MSSD-Net variants) | https://drive.google.com/drive/folders/REPLACE-WITH-CKPT-FOLDER-ID |
+| `qualitative_results.zip` | Rendered figures for the report | https://drive.google.com/drive/folders/REPLACE-WITH-FIGURES-FOLDER-ID |
 
-The technical document covers:
+After downloading `checkpoints.zip`, unzip so that `trained_models/` is populated at the repository root. Then run evaluation directly:
 
-* Dataset construction
-* Sentinel-2 preprocessing
-* Feature engineering
-* Model architecture
-* Training methodology
-* Loss functions
-* Evaluation metrics
-* Quantitative results
-* Qualitative results
-* Limitations
-* Future work
+```bash
+cd msdd_net
+python evaluation_swin_unetv2.py \
+    --model_type swin --variant baseline \
+    --model_path ../trained_models/baseline/best_model.pth \
+    --tta True
+```
 
 ---
 
 ## Limitations
 
-Satellite-based marine debris detection has several inherent limitations.
+MSSD predictions should be interpreted as potential debris detections requiring further validation, not as definitive confirmation of physical debris.
 
-MSSD predictions should therefore be interpreted as **potential debris detections requiring further validation**, rather than definitive confirmation of physical debris.
+- Small debris may fall below the effective spatial resolution of Sentinel-2.
+- Sun glint and surface reflections can produce false positives.
+- Floating algae and other natural materials can have similar spectral signatures.
+- Turbid coastal waters reduce detection performance.
+- Limited ground-truth data affects generalization.
+- Performance varies across geography, season, and environmental conditions.
 
-Important limitations include:
-
-* Small debris may be below the effective spatial resolution of Sentinel-2.
-* Sun glint and surface reflections can generate false positives.
-* Floating algae and other natural materials can have similar spectral characteristics.
-* Turbid coastal waters can reduce detection performance.
-* Limited ground-truth data can affect model generalization.
-* Performance may vary across geographic, seasonal, and environmental conditions.
-
-MSSD is therefore designed as a **decision-support and prioritization system**, not as a replacement for field verification.
+MSSD is a decision-support and prioritization system, not a replacement for field verification.
 
 ---
 
 ## Future Work
 
-### Multi-sensor Fusion
-
-Integrate additional Earth observation sources such as:
-
-* Sentinel-1 SAR
-* Higher-resolution optical imagery
-* Additional satellite missions
-
-### Temporal Monitoring
-
-Extend the system from individual scenes to time-series analysis in order to identify:
-
-* Persistent debris accumulation
-* Recurring hotspots
-* Temporal changes in debris concentration
-* Seasonal patterns
-
-### Model Improvements
-
-Future research could explore:
-
-* Improved transformer architectures
-* Self-supervised pretraining
-* Multimodal learning
-* Temporal modeling
-* Uncertainty estimation
-
-### Operational Deployment
-
-The long-term objective is an automated monitoring pipeline:
-
-```text
-Satellite Acquisition
-        ↓
-Automatic Preprocessing
-        ↓
-AI Inference
-        ↓
-Debris Hotspot Detection
-        ↓
-Geospatial Alert
-        ↓
-Human Verification
-        ↓
-Inspection / Cleanup Prioritization
-```
-
----
-
-## Potential Impact
-
-MSSD demonstrates how **Earth observation, artificial intelligence, and geospatial analysis** can be combined to support marine environmental monitoring.
-
-Potential applications include:
-
-* Marine pollution monitoring
-* Coastal environmental management
-* Plastic pollution research
-* Fisheries and ecosystem protection
-* Marine monitoring operations
-* Cleanup operation planning
-
-The broader objective is to make marine debris surveillance more **scalable, repeatable, and data-driven**.
-
----
-
-## License
-
-### Code
-
-MIT License.
-
-### Sentinel-2 Imagery
-
-Copernicus Sentinel-2 data is used in accordance with the applicable Copernicus data terms and attribution requirements.
-
-### Documentation
-
-Documentation is released under **CC BY 4.0**, unless otherwise specified.
+- **Multi-sensor fusion:** Sentinel-1 SAR, higher-resolution optical imagery, additional missions.
+- **Temporal monitoring:** persistent accumulation hotspots, recurring patterns, seasonal trends.
+- **Model improvements:** better transformer variants, self-supervised pretraining, multimodal learning, uncertainty estimation.
+- **Operational deployment:** automated acquisition, preprocessing, inference, hotspot detection, geospatial alert, human verification, and cleanup prioritization.
 
 ---
 
 ## Team
 
-**Arab Youth Space Hackathon — 813 Challenge**
-**Theme 03: Marine & Water Security**
+**Arab Youth Space Hackathon, 813 Challenge**
+**Theme 03: Marine and Water Security**
 
-* **Your Name** — Role
-* **Teammate Name** — Role
-* **Teammate Name** — Role
+- Besma Guesmi , Tech Team Lead
+- Afef Guesmi , ML R&D
+- Dorra Guesmi , Full Stack Engineer
+
+---
+
+## License
+
+Code: MIT.
+Sentinel-2 imagery is used under the Copernicus data terms.
+Documentation: CC BY 4.0.
 
 ---
 
 ## Project Resources
 
-| Resource                                                                           | Description              |
-| ---------------------------------------------------------------------------------- | ------------------------ |
-| [`README.md`](README.md)                                                           | Project overview         |
-| [`PREPROCESSING.md`](docs/PREPROCESSING.md)                                        | Data preprocessing       |
-| [`RESULTS.md`](docs/RESULTS.md)                                                    | Model evaluation         |
-| [`TECHNICAL_DOCUMENT.md`](docs/TECHNICAL_DOCUMENT.md)                              | Technical documentation  |
-| [Marine Debris — NOAA](https://marinedebris.noaa.gov/)                             | Marine debris background |
-| [Qualitative Results](https://drive.google.com/drive/folders/YOUR-DRIVE-FOLDER-ID) | Visual predictions       |
+| Resource | Description |
+| -------- | ----------- |
+| [`README.md`](README.md) | Project overview |
+| [`docs/PREPROCESSING.md`](docs/PREPROCESSING.md) | Data preprocessing |
+| [`docs/RESULTS.md`](docs/RESULTS.md) | Model evaluation |
+| [`docs/TECHNICAL_DOCUMENT.md`](docs/TECHNICAL_DOCUMENT.md) | Technical documentation |
+| [Marine Debris, NOAA](https://marinedebris.noaa.gov/) | Marine debris background |
+| [Marine Debris Archive (MARIDA)](https://zenodo.org/record/5151941) | Source dataset |
+| [MADOS](https://zenodo.org/records/10430388) | Source dataset |
+| [Pretrained checkpoints](https://drive.google.com/drive/folders/REPLACE-WITH-CKPT-FOLDER-ID) | Hosted weights |
 
 ---
 
-## Hackathon Project
-
-**MSSD — Marine Surface Debris Surveillance**
-
-**Arab Youth Space Hackathon — 813 Challenge, 2026**
-**Theme 03: Marine & Water Security**
-
-> From satellite imagery to actionable marine-debris intelligence.
+**From satellite imagery to actionable marine-debris intelligence.**

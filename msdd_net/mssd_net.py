@@ -338,7 +338,7 @@ class MSSDNet(nn.Module):
             if inx == 0:
                 x = layer_up(x)
             else:
-                skip = x_downsample[3 - inx]
+                skip = x_downsample[self.num_layers - 1 - inx]
                 x_up = x  # upsampled decoder feature, dim = stage_dim
 
                 fused = torch.cat([x_up, skip], -1)              # dim = 2 * stage_dim

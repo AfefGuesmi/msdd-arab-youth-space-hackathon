@@ -58,19 +58,12 @@ GLCM_FEATURE_NAMES = ["contrast", "dissimilarity", "homogeneity",
 # ------------------------------------------------------------------
 # Per-class colors (11 MADOS/MARIDA classes)
 # ------------------------------------------------------------------
-CLASS_COLORS = np.array([
-    [230,  25,  75],   # 0  Marine Debris
-    [ 60, 180,  75],   # 1  Dense Sargassum
-    [170, 110,  40],   # 2  Sparse Sargassum
-    [128,   0, 128],   # 3  Natural Organic Material
-    [  0, 130, 200],   # 4  Ship
-    [220, 220, 220],   # 5  Clouds
-    [ 70, 240, 240],   # 6  Marine Water
-    [170,  60,   0],   # 7  Sediment-Laden Water
-    [255, 255, 255],   # 8  Foam
-    [  0,   0, 128],   # 9  Turbid Water
-    [145,  30, 180],   # 10 Shallow Water
-], dtype=np.float32) / 255.0
+# Official MARIDA palette (utils/assets.py color_mapping). The previous
+# palette gave NatM and Shallow Water near-identical purples.
+from matplotlib.colors import to_rgb
+CLASS_COLORS = np.array([to_rgb(c) for c in [
+    'red', 'green', 'limegreen', 'brown', 'orange', 'silver', 'navy',
+    'gold', 'purple', 'darkkhaki', 'darkturquoise']], dtype=np.float32)
 
 IGNORE_COLOR = np.array([0.05, 0.05, 0.05], dtype=np.float32)  # for label == -1
 
@@ -122,10 +115,10 @@ def stretch_channel(arr, lo_pct=2, hi_pct=98):
     return np.clip((a - lo) / (hi - lo), 0.0, 1.0)
 
 
-def colorize(label_map):
+def colorize(label_map, base=None):
     h, w = label_map.shape
     rgb = np.zeros((h, w, 3), dtype=np.float32)
-    rgb[:] = IGNORE_COLOR
+    rgb[:] = IGNORE_COLOR if base is None else base
     for c in range(len(CLASS_COLORS)):
         rgb[label_map == c] = CLASS_COLORS[c]
     return rgb
@@ -149,7 +142,9 @@ def save_triplet(scene_dir, rgb, label, pred, scene_name):
     scene_dir = Path(scene_dir)
     scene_dir.mkdir(parents=True, exist_ok=True)
 
-    label_rgb = colorize(label)
+    # Labels are sparse: draw them over a dimmed RGB so unlabelled
+    # pixels stay readable instead of an all-black panel.
+    label_rgb = colorize(label, base=rgb * 0.6)
     pred_rgb  = colorize(pred)
 
     plt.imsave(scene_dir / "input.png",      rgb)
@@ -159,7 +154,7 @@ def save_triplet(scene_dir, rgb, label, pred, scene_name):
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     axes[0].imshow(rgb);       axes[0].set_title(f"Input — {scene_name}")
     axes[1].imshow(label_rgb); axes[1].set_title("Reference label")
-    axes[2].imshow(pred_rgb);  axes[2].set_title("MSSD-Net prediction")
+    axes[2].imshow(pred_rgb);  axes[2].set_title(f"MSSD-Net prediction")
     for ax in axes:
         ax.axis("off")
     plt.tight_layout()
@@ -216,7 +211,8 @@ def main(options):
 
     saved = 0
     with torch.no_grad():
-        for images, targets in tqdm(loader, desc="inference"):
+        for batch_idx, (images, targets) in enumerate(tqdm(loader, desc="inference")):
+            batch_start = batch_idx * options["batch"]
             images_dev = images.to(device)
             probs = torch.nn.functional.softmax(model(images_dev), dim=1)
             preds = probs.argmax(1).cpu().numpy()
@@ -228,6 +224,8 @@ def main(options):
                     break
 
                 scene_name = f"patch_{saved:04d}"
+                if hasattr(dataset, "rois"):
+                    scene_name += "_" + str(dataset.rois[batch_start + b])
                 scene_dir = out_root / scene_name
 
                 rgb = un_normalize_rgb(images_cpu[b])
@@ -235,6 +233,13 @@ def main(options):
 
                 label = targets_np[b].astype(np.int64)
                 pred  = preds[b].astype(np.int64)
+                # Skip patches with (almost) no reference labels, or no
+                # debris when --require_debris is set: an empty reference
+                # panel says nothing about model quality.
+                if (label >= 0).sum() < options["min_labeled_px"]:
+                    continue
+                if options["require_debris"] and not (label == 0).any():
+                    continue
 
                 save_triplet(scene_dir, rgb, label, pred, scene_name)
                 saved += 1
@@ -263,6 +268,10 @@ if __name__ == "__main__":
     parser.add_argument("--use_texture_features", default=False, type=ast.literal_eval)
     parser.add_argument("--use_glcm_texture", default=False, type=ast.literal_eval)
     parser.add_argument("--n_samples", default=20, type=int)
+    parser.add_argument("--min_labeled_px", default=50, type=int,
+                        help="skip patches with fewer labelled pixels than this")
+    parser.add_argument("--require_debris", default=True, type=ast.literal_eval,
+                        help="only keep patches containing labelled Marine Debris")
     parser.add_argument("--out_dir", default="qualitative_results")
     args = parser.parse_args()
     main(vars(args))

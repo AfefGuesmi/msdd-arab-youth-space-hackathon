@@ -10,7 +10,7 @@ your MARIDA-trained models using the exact same evaluation script
 
 This reuses your already-tested loss classes (DiceLoss, CEDiceLoss,
 FocalLoss) and LR scheduler (build_scheduler) directly from
-train_swin_unetv2.py, so training behaviour matches your MARIDA
+train_marida.py, so training behaviour matches your MARIDA
 pipeline as closely as possible -- the only things that differ are the
 data source and (necessarily) the class-weight computation, which is
 now derived from MADOS's own training-split class distribution instead
@@ -61,11 +61,12 @@ from dataloader import BANDS_MEAN, BANDS_STD, SPECTRAL_INDEX_NAMES, TEXTURE_FEAT
     RandomRotationTransform, gen_weights
 from mados_dataloader import MADOSDataset, MARIDA_LABELS, MARIDA_CLASSES_NOT_IN_MADOS, remap_native_predictions_to_marida
 from utils.metrics import Evaluation
+from utils.cli import str2bool, int_list
 
 # Reuse the exact, already-tested loss classes and LR scheduler builder
 # from the MARIDA training script -- training behaviour matches as
 # closely as possible; only the data source and class-weight source differ.
-from train_swin_unetv2 import DiceLoss, CEDiceLoss, FocalLoss, build_scheduler, ensure_pretrained_checkpoint, build_param_groups
+from training_utils import DiceLoss, CEDiceLoss, FocalLoss, build_scheduler, ensure_pretrained_checkpoint, build_param_groups
 
 # Same 6 property names as precompute_mados_glcm.py's GLCM_PROPERTIES --
 # defined directly here (not imported) so this script only needs
@@ -432,7 +433,7 @@ def main(options):
                     break
 
             # ---- Step main scheduler once per epoch, after warmup ----
-            # (matches train_swin_unetv2.py's tested pattern exactly)
+            # (matches train_marida.py's tested pattern exactly)
             if global_step >= warmup_steps:
                 if options['scheduler'] == 'plateau':
                     # ReduceLROnPlateau's default mode='min' expects a
@@ -464,11 +465,11 @@ if __name__ == '__main__':
     parser.add_argument('--loss_type', default='ce', choices=['ce', 'focal', 'dice', 'ce_dice'])
     parser.add_argument('--focal_gamma', default=2.0, type=float)
     parser.add_argument('--dice_weight', default=0.5, type=float)
-    parser.add_argument('--use_spectral_indices', default=False, type=bool)
-    parser.add_argument('--use_texture_features', default=False, type=bool,
+    parser.add_argument('--use_spectral_indices', default=False, type=str2bool)
+    parser.add_argument('--use_texture_features', default=False, type=str2bool,
                          help="Fast local std-dev + gradient magnitude texture proxy, computed "
                               "live. Ignored if --use_glcm_texture is also True (GLCM wins).")
-    parser.add_argument('--native_15_classes', default=False, type=bool,
+    parser.add_argument('--native_15_classes', default=False, type=str2bool,
                          help="Train on MADOS's own 15-class taxonomy directly, instead of "
                               "remapping every mask down to MARIDA's 11 classes. Gives the "
                               "model real learning signal from the ~4 extra classes' pixels "
@@ -481,7 +482,7 @@ if __name__ == '__main__':
                               "remapped down for scoring, via remap_native_predictions_to_marida) "
                               "so results stay directly comparable to non-native runs. "
                               "Default False = original behavior, unchanged.")
-    parser.add_argument('--use_glcm_texture', default=False, type=bool,
+    parser.add_argument('--use_glcm_texture', default=False, type=str2bool,
                          help="Use TRUE precomputed GLCM texture features (Contrast, "
                               "Dissimilarity, Homogeneity, Energy, Correlation, ASM) instead of "
                               "the fast proxy. REQUIRES running precompute_mados_glcm.py "
@@ -498,20 +499,20 @@ if __name__ == '__main__':
     parser.add_argument('--spectral_jitter_strength', default=0.05, type=float,
                          help="Each band's multiplicative jitter factor is drawn uniformly from "
                               "[1-strength, 1+strength]. Only used if --spectral_jitter_prob > 0.")
-    parser.add_argument('--oversample_rare', default=False, type=bool,
+    parser.add_argument('--oversample_rare', default=False, type=str2bool,
                          help="Use a WeightedRandomSampler that oversamples training patches "
                               "containing --rare_classes, instead of plain shuffle=True. "
-                              "Matches train_swin_unetv2.py's MARIDA convention. Default True.")
+                              "Matches train_marida.py's MARIDA convention. Default True.")
     parser.add_argument('--rare_classes', default='0,2,3,8', type=str,
                          help="Comma-separated MARIDA-label-space class indices (e.g. "
                               "'0,2,3,8' = Marine Debris, Sparse Sargassum, Natural Organic "
                               "Material, Foam) to oversample. Same convention as "
-                              "train_swin_unetv2.py's --rare_classes. Only used if "
+                              "train_marida.py's --rare_classes. Only used if "
                               "--oversample_rare is True.")
     parser.add_argument('--oversample_boost', default=5.0, type=float,
                          help="Extra sampling weight added per rare class present in a patch "
                               "(see compute_sample_weights). Only used if --oversample_rare.")
-    parser.add_argument('--use_pretrained', default=True, type=bool,
+    parser.add_argument('--use_pretrained', default=True, type=str2bool,
                          help='Load ImageNet-pretrained Swin V2 weights (same channel-adaptation '
                               'logic as the MARIDA training script -- works regardless of '
                               'in_chans, verified earlier in this project).')
@@ -525,14 +526,14 @@ if __name__ == '__main__':
                               "(previous behavior, unchanged unless explicitly set). Try e.g. "
                               "0.1 so pretrained ImageNet features move slower than the "
                               "from-scratch parts. Reuses build_param_groups from "
-                              "train_swin_unetv2.py, verified against the real MSSDNet model.")
+                              "train_marida.py, verified against the real MSSDNet model.")
     parser.add_argument('--decay', default=1e-4, type=float)
     parser.add_argument('--scheduler', default='sgdr', choices=['sgdr', 'plateau', 'multistep', 'cosine'])
-    parser.add_argument('--lr_steps', default=[45, 65], type=list)
+    parser.add_argument('--lr_steps', default=[45, 65], type=int_list)
     parser.add_argument('--warmup_epochs', default=5, type=int)
     parser.add_argument('--grad_clip', default=1.0, type=float)
-    parser.add_argument('--train_rotations', default=True, type=bool)
-    parser.add_argument('--train_hflip', default=True, type=bool)
+    parser.add_argument('--train_rotations', default=True, type=str2bool)
+    parser.add_argument('--train_hflip', default=True, type=str2bool)
     parser.add_argument('--eval_every', default=1, type=int)
     parser.add_argument('--num_workers', default=2, type=int)
 

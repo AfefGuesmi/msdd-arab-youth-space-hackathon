@@ -1,0 +1,95 @@
+# MSSD: docker-compose for local development and evaluation.
+#
+# Usage:
+#   docker compose build
+#   docker compose run --rm rf
+#   docker compose run --rm unet
+#   docker compose run --rm mssd
+#   docker compose run --rm eval
+#
+# Data and checkpoints are mounted from the host so training runs survive
+# container restarts and results are visible outside the container.
+
+services:
+
+  rf:
+    build:
+      context: .
+      target: cpu
+    image: msdd:cpu
+    volumes:
+      - ./msdd_net/data:/workspace/msdd_net/data
+      - ./trained_models:/workspace/msdd_net/trained_models
+      - ./cache:/workspace/msdd_net/cache
+    command: >
+      python train_rf.py
+        --features ss_si_glcm
+        --data_path data
+        --predict_patches True
+
+  unet:
+    build:
+      context: .
+      target: gpu
+    image: msdd:gpu
+    volumes:
+      - ./msdd_net/data:/workspace/msdd_net/data
+      - ./trained_models:/workspace/msdd_net/trained_models
+      - ./qualitative_results:/workspace/msdd_net/qualitative_results
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      python train_marida.py
+        --model unet
+        --data_path data
+
+  mssd:
+    build:
+      context: .
+      target: gpu
+    image: msdd:gpu
+    volumes:
+      - ./msdd_net/data:/workspace/msdd_net/data
+      - ./trained_models:/workspace/msdd_net/trained_models
+      - ./qualitative_results:/workspace/msdd_net/qualitative_results
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      python train_marida.py
+        --model mssd
+        --variant baseline
+        --data_path data
+        --use_pretrained True
+
+  eval:
+    build:
+      context: .
+      target: gpu
+    image: msdd:gpu
+    volumes:
+      - ./msdd_net/data:/workspace/msdd_net/data
+      - ./trained_models:/workspace/msdd_net/trained_models
+      - ./qualitative_results:/workspace/msdd_net/qualitative_results
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      python evaluation_swin_unetv2.py
+        --model_type swin
+        --variant baseline
+        --model_path trained_models/baseline/best_model.pth
+        --tta True

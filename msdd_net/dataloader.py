@@ -15,7 +15,7 @@ from os.path import dirname as up
 import numpy as np
 import torch
 import torchvision.transforms.functional as F
-from osgeo import gdal
+import rasterio
 from scipy import ndimage
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -249,9 +249,8 @@ class GenDEBRIS(Dataset):
             mask_path = os.path.join(path, 'patches', folder, f'{name}_cl.tif')
 
             # Load mask
-            ds = gdal.Open(mask_path)
-            mask = ds.ReadAsArray().astype(np.int64)
-            ds = None
+            with rasterio.open(mask_path) as src:
+                mask = src.read(1).astype(np.int64)
 
             # Optionally aggregate water classes
             if agg_to_water:
@@ -266,9 +265,8 @@ class GenDEBRIS(Dataset):
             self.masks.append(mask)
 
             # Load image
-            ds = gdal.Open(img_path)
-            img = ds.ReadAsArray()
-            ds = None
+            with rasterio.open(img_path) as src:
+                img = src.read().astype(np.float32)
             self.images.append(img)
 
         # Pre‑compute nan imputation array
@@ -515,6 +513,20 @@ class RandomRotationTransform:
     def __call__(self, x):
         angle = random.choice(self.angles)
         return F.rotate(x, angle)
+
+
+def marida_class_distribution(agg_to_water=True):
+    """
+    Pixel-level class distribution of the MARIDA training set. With
+    agg_to_water=True, Waves/Cloud Shadows/Wakes/Mixed Water are folded into
+    Marine Water (index 6), giving the 11-class distribution used by the
+    paper's weighted cross-entropy.
+    """
+    distr = CLASS_DISTR.clone()
+    if agg_to_water:
+        distr[6] += distr[-4:].sum()
+        distr = distr[:-4]
+    return distr
 
 
 def gen_weights(class_distribution, c=1.02):

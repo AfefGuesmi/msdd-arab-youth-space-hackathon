@@ -100,6 +100,7 @@ from mados_dataloader import (
     MADOSDataset, MARIDA_LABELS, MARIDA_CLASSES_NOT_IN_MADOS,
 )
 from utils.metrics import Evaluation
+from utils.cli import str2bool, int_list
 
 # Same 6 property names as precompute_mados_glcm.py's GLCM_PROPERTIES --
 # defined directly here (not imported) so this script only needs
@@ -281,24 +282,24 @@ if __name__ == '__main__':
                          help="MARIDA splits subfolder. Only used when --dataset marida -- "
                               "must match whatever the checkpoint was trained/evaluated with "
                               "(e.g. 'splits_80_10_10' for the custom stratified split).")
-    parser.add_argument('--agg_to_water', default=True, type=bool,
+    parser.add_argument('--agg_to_water', default=True, type=str2bool,
                          help='Only used when --dataset marida.')
     parser.add_argument('--variant', required=True)
     parser.add_argument('--model_path', required=True)
     parser.add_argument('--batch', default=5, type=int)
     parser.add_argument('--output_channels', default=11, type=int)
     parser.add_argument('--input_channels', default=11, type=int)
-    parser.add_argument('--use_spectral_indices', default=False, type=bool)
-    parser.add_argument('--use_texture_features', default=False, type=bool,
+    parser.add_argument('--use_spectral_indices', default=False, type=str2bool)
+    parser.add_argument('--use_texture_features', default=False, type=str2bool,
                          help="Fast local std-dev + gradient magnitude proxy. Ignored if "
                               "--use_glcm_texture is also True.")
-    parser.add_argument('--use_glcm_texture', default=False, type=bool,
+    parser.add_argument('--use_glcm_texture', default=False, type=str2bool,
                          help="Must match the --use_glcm_texture setting the checkpoint was "
                               "trained with. Requires precompute_mados_glcm.py to have been "
                               "run against --mados_path. Only relevant for --dataset mados.")
-    parser.add_argument('--tta', default=True, type=bool)
+    parser.add_argument('--tta', default=True, type=str2bool)
     parser.add_argument('--tta_rotations', default='[0,180]', type=str)
-    parser.add_argument('--tta_hflip', default=False, type=bool)
+    parser.add_argument('--tta_hflip', default=False, type=str2bool)
     args = parser.parse_args()
     options = vars(args)
 

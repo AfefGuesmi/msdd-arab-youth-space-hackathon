@@ -77,6 +77,7 @@ import random
 
 import numpy as np
 import torch
+import rasterio
 from torch.utils.data import Dataset
 
 from dataloader import (
@@ -161,6 +162,17 @@ MADOS_TO_MARIDA = {
 MARIDA_CLASSES_NOT_IN_MADOS = ['Clouds']
 
 
+def _read_tif(path, required=False):
+    """Read a GeoTIFF as (C, H, W) (or (H, W) for single-band) with rasterio."""
+    if not os.path.exists(path):
+        if required:
+            raise FileNotFoundError(path)
+        return None
+    with rasterio.open(path) as src:
+        arr = src.read()
+    return arr[0] if arr.shape[0] == 1 else arr
+
+
 def remap_mados_mask(mados_mask):
     """
     Convert a raw MADOS mask (1-indexed class codes) into MARIDA's
@@ -227,7 +239,7 @@ class MADOSDataset(Dataset):
             transforms.Compose([transforms.ToTensor(),
             RandomRotationTransform([-90,0,90,180]),
             transforms.RandomHorizontalFlip()]) for training (matching
-            train_swin_unetv2.py's train-time augmentation exactly), or
+            train_marida.py's train-time augmentation exactly), or
             transforms.Compose([transforms.ToTensor()]) for
             deterministic val/test. Required (not optional), since
             ToTensor is what performs the numpy->tensor + HWC->CHW
@@ -248,9 +260,6 @@ class MADOSDataset(Dataset):
                  standardization=None, splits_path=None, use_glcm_texture=False,
                  spectral_jitter_prob=0.0, spectral_jitter_strength=0.05,
                  native_15_classes=False):
-        from osgeo import gdal
-
-        self._gdal = gdal
         self.mados_path = mados_path
         self.transform = transform
         self.use_spectral_indices = use_spectral_indices
@@ -343,12 +352,11 @@ class MADOSDataset(Dataset):
         for roi in self.rois:
             scene_id, crop_id = roi.rsplit('_', 1)
             mask_path = os.path.join(self.mados_path, scene_id, f'{scene_id}_L2R_cl_{crop_id}.tif')
-            ds = self._gdal.Open(mask_path)
-            if ds is None:
+            raw_mask = _read_tif(mask_path)
+            if raw_mask is None:
                 weights.append(1.0)  # can't read it; don't let it crash the whole scan
                 continue
-            raw_mask = ds.ReadAsArray().astype(np.int64)
-            ds = None
+            raw_mask = raw_mask.astype(np.int64)
             remapped = remap_mados_mask(raw_mask)
             n_rare_present = sum(1 for c in rare_classes if np.any(remapped == c))
             weights.append(1.0 + boost * n_rare_present)
@@ -368,13 +376,9 @@ class MADOSDataset(Dataset):
         img_path = os.path.join(self.mados_path, scene_id, f'{scene_id}_L2R_rhorc_{crop_id}.tif')
         mask_path = os.path.join(self.mados_path, scene_id, f'{scene_id}_L2R_cl_{crop_id}.tif')
 
-        ds = self._gdal.Open(img_path)
-        img = ds.ReadAsArray().astype(np.float32)  # (C, H, W)
-        ds = None
+        img = _read_tif(img_path, required=True).astype(np.float32)  # (C, H, W)
 
-        ds = self._gdal.Open(mask_path)
-        mask = ds.ReadAsArray().astype(np.int64)  # (H, W), MADOS's raw 1-indexed codes
-        ds = None
+        mask = _read_tif(mask_path, required=True).astype(np.int64)  # (H, W), MADOS's raw 1-indexed codes
 
         if self.native_15_classes:
             # Keep MADOS's own 0-indexed 15-class labels directly, no
@@ -395,9 +399,7 @@ class MADOSDataset(Dataset):
                     f"use_glcm_texture=True but no precomputed GLCM file found at {glcm_path}. "
                     f"Run precompute_mados_glcm.py --mados_path {self.mados_path} first."
                 )
-            ds = self._gdal.Open(glcm_path)
-            glcm = ds.ReadAsArray().astype(np.float32)  # (6, H, W)
-            ds = None
+            glcm = _read_tif(glcm_path, required=True).astype(np.float32)  # (6, H, W)
             glcm = np.moveaxis(glcm, 0, -1)  # (H, W, 6)
             n_glcm_bands = glcm.shape[-1]
             # Concatenate onto the raw bands BEFORE resize_to_256, so both

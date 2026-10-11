@@ -7,8 +7,8 @@ Quantitative evaluation for BOTH models trained in this project:
     attention-refinement / residual-fusion ablation modules), via
     --model_type swin --variant <baseline|+dilated|+dilated+attention|
     full|only_dilated|only_attention|only_residual>
-  * The U-Net baseline (plain, or with a resnet18/mobilenetv2/
-    efficientnetv2 backbone), via --model_type unet --backbone <...>
+  * The MARIDA-paper U-Net baseline (unet.py, 16 hidden channels),
+    via --model_type unet
 
 For a given trained checkpoint this computes, on the MARIDA test split:
   * the project-standard overall Evaluation(...) + confusion_matrix(...)
@@ -58,6 +58,7 @@ from dataloader import (
     compute_spectral_indices, compute_texture_features,
 )
 from utils.metrics import Evaluation
+from utils.cli import str2bool, int_list
 
 try:
     from utils.metrics import confusion_matrix
@@ -97,7 +98,7 @@ def tta_predict(model, images, num_classes, rotations=(0, 180), use_hflip=False)
     pass rotations=(0,90,180,270), use_hflip=True for the fuller 8-pass
     version matching the training augmentation space (RandomRotation
     Transform([-90, 0, 90, 180]) + RandomHorizontalFlip in
-    train_swin_unetv2.py), just enumerated exhaustively instead of sampled.
+    train_marida.py), just enumerated exhaustively instead of sampled.
     Each augmented prediction is un-rotated/un-flipped back to the original
     orientation before averaging, so probabilities stay pixel-aligned with
     the (un-augmented) target mask.
@@ -147,7 +148,7 @@ def find_latest_checkpoint(model_dir, checkpoint_name='best_model.pth'):
     """
     Fall back to the highest-numbered epoch folder under a checkpoint
     directory if --model_path isn't given explicitly (mirrors how both
-    train_swin_unetv2.py and train.py name checkpoint folders by epoch).
+    train_marida.py and train.py name checkpoint folders by epoch).
     """
     if not os.path.isdir(model_dir):
         return None
@@ -198,7 +199,7 @@ def build_model(options, device):
             hidden_channels=options['hidden_channels'],
             backbone=backbone,
         )
-        tag = backbone
+        tag = 'unet'
         description = f"UNet backbone={backbone}, hidden_channels={options['hidden_channels']}"
 
     model.to(device)
@@ -209,7 +210,7 @@ def resolve_checkpoint(options, tag):
     """
     Find the checkpoint to load: an explicit --model_path always wins.
     Otherwise, look under trained_models/<tag>/ first (how
-    train_swin_unetv2.py always namespaces checkpoints, and how you may
+    train_marida.py always namespaces checkpoints, and how you may
     have organised U-Net runs by backbone yourself), then fall back to
     trained_models/ directly (train.py's un-namespaced default location).
     """
@@ -217,6 +218,9 @@ def resolve_checkpoint(options, tag):
         return options['model_path']
 
     tagged_dir = os.path.join(PROJECT_ROOT, 'trained_models', tag)
+    direct = os.path.join(tagged_dir, options['checkpoint_name'])  # train_marida.py layout
+    if os.path.isfile(direct):
+        return direct
     model_file = find_latest_checkpoint(tagged_dir, options['checkpoint_name'])
     if model_file is not None:
         return model_file
@@ -537,13 +541,13 @@ if __name__ == "__main__":
 
     # --- U-Net specific ---
     parser.add_argument('--backbone', default='none',
-                         choices=['none', 'resnet18', 'mobilenetv2', 'efficientnetv2'],
+                         choices=['none'],
                          help='[--model_type unet] Encoder backbone -- must match the '
                               'architecture used to train the checkpoint')
-    parser.add_argument('--hidden_channels', default=64, type=int,
+    parser.add_argument('--hidden_channels', default=16, type=int,
                          help='[--model_type unet, --backbone none] U-Net base width')
 
-    parser.add_argument('--agg_to_water', default=True, type=bool,
+    parser.add_argument('--agg_to_water', default=True, type=str2bool,
                          help='Aggregate Mixed Water, Wakes, Cloud Shadows, Waves with Marine Water')
     parser.add_argument('--splits_dir', default='splits', type=str,
                          help="Must match the --splits_dir the checkpoint was trained with. "
@@ -553,13 +557,13 @@ if __name__ == "__main__":
 
     parser.add_argument('--input_channels', default=11, type=int, help='Number of input bands')
     parser.add_argument('--output_channels', default=11, type=int, help='Number of output classes')
-    parser.add_argument('--use_spectral_indices', default=False, type=bool,
+    parser.add_argument('--use_spectral_indices', default=False, type=str2bool,
                          help='Must match the --use_spectral_indices setting the checkpoint '
                               'being evaluated was trained with. --input_channels is '
                               'automatically adjusted (+6: NDVI, NDWI, NDMI, BSI, FAI, FDI) '
                               'regardless of what --input_channels is passed, so the flags '
                               'can never end up inconsistent.')
-    parser.add_argument('--use_texture_features', default=False, type=bool,
+    parser.add_argument('--use_texture_features', default=False, type=str2bool,
                          help='Must match the --use_texture_features setting the checkpoint '
                               'being evaluated was trained with. --input_channels is '
                               'automatically adjusted (+2: local std-dev, gradient magnitude) '
@@ -574,13 +578,13 @@ if __name__ == "__main__":
                          help='Checkpoint filename inside the epoch folder, used when '
                               'auto-locating --model_path')
 
-    parser.add_argument('--predict_masks', default=True, type=bool,
+    parser.add_argument('--predict_masks', default=True, type=str2bool,
                          help='Generate test set prediction masks?')
     parser.add_argument('--gen_masks_path',
                          default=os.path.join(PROJECT_ROOT, 'data', 'predicted_masks'),
                          help='Path to where predicted masks are stored')
 
-    parser.add_argument('--tta', default=True, type=bool,
+    parser.add_argument('--tta', default=True, type=str2bool,
                          help='Average predictions over test-time augmentations '
                               '(rotations x optional horizontal flip), matching the '
                               'augmentation space used during training. Adds extra '
@@ -592,7 +596,7 @@ if __name__ == "__main__":
                               '(each must be a multiple of 90). Default is a cheap 2-pass '
                               '0/180 sweep; pass "[0,90,180,270]" for the fuller 4- or '
                               '8-pass version (combined with --tta_hflip True).')
-    parser.add_argument('--tta_hflip', default=False, type=bool,
+    parser.add_argument('--tta_hflip', default=False, type=str2bool,
                          help='Also average over a horizontal flip at each TTA rotation '
                               '(doubles the pass count). Default is off (rotation-only '
                               'TTA); set True for the fuller rotation+flip sweep.')

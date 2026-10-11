@@ -1,34 +1,34 @@
 # Data Preprocessing Pipeline
 
-This document describes the preprocessing pipeline used to transform raw **Sentinel-2 Level-2A (L2A) surface reflectance imagery** into standardized, training-ready inputs for **MSSD-Net**.
+This document describes the preprocessing pipeline that transforms raw Sentinel-2 Level-2A (L2A) surface reflectance imagery into the standardized inputs used by MSSD-Net, the U-Net baseline, and the Random Forest baselines.
 
-The pipeline covers scene selection, spectral band preparation, quality masking, feature engineering, spatial normalization, and tensor generation.
+The pipeline covers scene selection, band preparation, NaN handling, feature engineering, spatial alignment, normalization, patch generation, and label handling.
 
-```text
+```
 Sentinel-2 L2A
-      │
-      ▼
+      |
+      v
 Scene Selection
-      │
-      ▼
-Band Retrieval & Resampling
-      │
-      ▼
-Quality Masking
-      │
-      ▼
-Spectral Index Computation
-      │
-      ▼
-Texture Feature Extraction
-      │
-      ▼
+      |
+      v
+Band Retrieval and Alignment
+      |
+      v
+NaN Handling
+      |
+      v
+Spectral Index Computation (optional)
+      |
+      v
+Texture Feature Extraction (optional)
+      |
+      v
 Normalization
-      │
-      ▼
+      |
+      v
 Patch Generation
-      │
-      ▼
+      |
+      v
 Training-ready Tensors
 ```
 
@@ -38,385 +38,410 @@ Training-ready Tensors
 
 Sentinel-2 scenes are selected over coastal and open-water regions within the study area.
 
-Scenes are filtered according to the following criteria:
+Scenes are filtered using the following criteria:
 
-* Cloud coverage below **10%**
-* No significant sun-glint contamination within the central area of interest (AOI)
-* Water fraction above **80%**
-* No severe atmospheric haze
-* Sufficient valid pixel coverage within the AOI
+- Cloud coverage below 10 percent
+- No significant sun-glint contamination within the central area of interest
+- Water fraction above 80 percent
+- No severe atmospheric haze
+- Sufficient valid pixel coverage within the area of interest
 
-Scene metadata and assets are retrieved through the **Microsoft Planetary Computer STAC API**.
+Scene metadata and assets are retrieved through the Microsoft Planetary Computer STAC API.
 
-Sentinel-2 assets are provided as **Cloud-Optimized GeoTIFFs (COGs)**, allowing the pipeline to access only the required spatial windows and spectral bands rather than downloading complete scenes.
+Sentinel-2 assets are provided as Cloud-Optimized GeoTIFFs, which let the pipeline read only the spatial windows and spectral bands that are actually needed rather than downloading whole scenes.
 
 ---
 
 ## 2. Spectral Band Selection
 
-Six Sentinel-2 L2A surface reflectance bands are used as the primary spectral inputs.
+Eleven Sentinel-2 L2A surface reflectance bands are used. This matches the MARIDA and MADOS benchmarks, and excludes the vapour band B9 and the cirrus band B10, which are not useful for surface segmentation.
 
-| Band | Central Wavelength | Resolution | Role                                                      |
-| ---- | -----------------: | ---------: | --------------------------------------------------------- |
-| B02  |             490 nm |       10 m | Blue; water and suspended-material information            |
-| B03  |             560 nm |       10 m | Green; water and vegetation-related information           |
-| B04  |             665 nm |       10 m | Red; sediment and turbidity information                   |
-| B08  |             842 nm |       10 m | Near-infrared; land/water and surface-feature information |
-| B11  |            1610 nm |       20 m | SWIR; surface-material discrimination                     |
-| B12  |            2190 nm |       20 m | SWIR; material and surface-feature discrimination         |
+| Index | Band | Central Wavelength | Native Resolution | Role |
+| ----: | ---- | -----------------: | ----------------: | ---- |
+| 0 | B1  | 443 nm  | 60 m | Coastal aerosol |
+| 1 | B2  | 490 nm  | 10 m | Blue; water and suspended material |
+| 2 | B3  | 560 nm  | 10 m | Green; water and vegetation |
+| 3 | B4  | 665 nm  | 10 m | Red; sediment and turbidity |
+| 4 | B5  | 705 nm  | 20 m | Red edge 1 |
+| 5 | B6  | 740 nm  | 20 m | Red edge 2; used by FDI baseline |
+| 6 | B7  | 783 nm  | 20 m | Red edge 3 |
+| 7 | B8  | 842 nm  | 10 m | Near infrared |
+| 8 | B8A | 865 nm  | 20 m | Narrow NIR |
+| 9 | B11 | 1610 nm | 20 m | Short-wave infrared |
+| 10 | B12 | 2190 nm | 20 m | Short-wave infrared |
 
-The 10 m bands are resampled to a common **20 m spatial grid** to match the native resolution of B11 and B12.
+Lower-resolution bands are resampled to a common spatial grid before patch generation. Bilinear interpolation is used for continuous surface reflectance values.
 
-**Bilinear interpolation** is used for continuous surface-reflectance values.
+The resulting spatially aligned spectral stack has 11 bands:
 
-This produces a spatially aligned six-band spectral input:
-
-```text
-[B02, B03, B04, B08, B11, B12]
+```
+[B1, B2, B3, B4, B5, B6, B7, B8, B8A, B11, B12]
 ```
 
 ---
 
-## 3. Quality Masking
+## 3. NaN Handling
 
-Quality control is performed at the pixel level using the **Sentinel-2 Scene Classification Layer (SCL)** together with the validity mask provided by the source imagery.
+The MARIDA and MADOS patches contain NaN values in some pixels, typically from cloud edges, scene boundaries, or failed atmospheric correction.
 
-The following classes are excluded:
+These NaNs are not treated as a separate class. Instead, in both the deep learning loader (`dataloader.py`, `mados_dataloader.py`) and the Random Forest feature extractor (`rf_features.py`), every NaN pixel is replaced with the corresponding per-band mean from the MARIDA reference statistics:
 
-| SCL Class | Description                | Action |
-| --------: | -------------------------- | ------ |
-|         3 | Cloud shadow               | Mask   |
-|         8 | Cloud — medium probability | Mask   |
-|         9 | Cloud — high probability   | Mask   |
-|        10 | Thin cirrus                | Mask   |
-
-Pixels outside the valid image footprint or flagged as NoData are also excluded.
-
-The resulting validity mask is applied consistently across:
-
-* Spectral bands
-* Spectral indices
-* Texture features
-* Training labels
-* Model evaluation
-
-This prevents invalid observations from contributing to either model optimization or evaluation metrics.
-
-### Quality Mask
-
-Conceptually:
-
-```text
-Valid Pixel =
-    NOT Cloud
-    AND NOT Cloud Shadow
-    AND NOT Cirrus
-    AND NOT NoData
 ```
+BANDS_MEAN = [0.05197577, 0.04783991, 0.04056812, 0.03163572,
+              0.02972606, 0.03457443, 0.03875053, 0.03436435,
+              0.03921130, 0.02358126, 0.01588816]
+```
+
+Imputation happens after band reordering and before feature computation, so the spectral indices, texture features, and standardized tensors are all computed from finite values only.
+
+### Label side
+
+Unlabeled pixels in the mask are marked with -1 and excluded from training and evaluation through `ignore_index=-1` in the loss and through masking in the metric code.
 
 ---
 
-## 4. Spectral Index Computation
+## 4. Spectral Index Computation (optional)
 
-Six derived spectral features are calculated from the Sentinel-2 reflectance bands.
-
-These indices provide complementary information that is not directly represented by the individual spectral bands.
+When `--use_spectral_indices True` is passed, six derived features are stacked on top of the 11 raw bands. All six are computed from raw reflectance values with a small epsilon added to the denominator to avoid division by zero.
 
 ### 4.1 NDVI
 
-The **Normalized Difference Vegetation Index (NDVI)** is calculated as:
-
-```text
-NDVI = (B08 - B04) / (B08 + B04)
+```
+NDVI = (B8 - B4) / (B8 + B4)
 ```
 
-NDVI provides information about vegetation-related spectral responses and can help distinguish vegetation-like floating material from surrounding water.
-
----
+Vegetation-related spectral response; distinguishes vegetation-like floating material from surrounding water.
 
 ### 4.2 NDWI
 
-The **Normalized Difference Water Index (NDWI)** is calculated as:
-
-```text
-NDWI = (B03 - B08) / (B03 + B08)
+```
+NDWI = (B3 - B8) / (B3 + B8)
 ```
 
-NDWI provides information about water-related spectral characteristics and supports separation between water and non-water surfaces.
+Water-related spectral characteristics; separates water from non-water surfaces.
 
----
+### 4.3 NDMI
 
-### 4.3 NDCI
-
-The **Normalized Difference Chlorophyll Index (NDCI)** is calculated as:
-
-```text
-NDCI = (B05 - B04) / (B05 + B04)
+```
+NDMI = (B8 - B11) / (B8 + B11)
 ```
 
-NDCI is commonly used to characterize chlorophyll-related conditions in aquatic environments.
+Moisture content; helps separate dry floating material from wet surface features.
 
-> **Implementation note:** B05 is therefore required for NDCI computation. If B05 is not included in the model input channels, it is retrieved as an auxiliary preprocessing band and used only to calculate the index.
+### 4.4 BSI
+
+```
+BSI = ((B11 + B4) - (B8 + B2)) / ((B11 + B4) + (B8 + B2))
+```
+
+Bare-soil index; provides information about exposed sediment and mineral surfaces.
+
+### 4.5 FAI
+
+The Floating Algae Index (Hu, 2009) uses a linear baseline between B4 and B11, evaluated at the B8 wavelength:
+
+```
+FAI = B8 - [B4 + (B11 - B4) * (842 - 665) / (1610 - 665)]
+```
+
+The wavelengths used in the linear interpolation are the Sentinel-2 central wavelengths in nanometres (B4 = 665, B8 = 842, B11 = 1610).
+
+### 4.6 FDI
+
+The Floating Debris Index (Biermann et al., 2020) uses a linear baseline between B6 and B11, evaluated at the B8 wavelength, with a factor of 10:
+
+```
+FDI = B8 - [B6 + (B11 - B6) * (842 - 740) / (1610 - 740) * 10]
+```
+
+Note that the FDI baseline uses the red-edge wavelength (B6 = 740 nm), not the red wavelength, which is a common source of implementation bugs.
+
+### Channel order
+
+The six indices are stacked in this fixed order:
+
+```
+[NDVI, NDWI, NDMI, BSI, FAI, FDI]
+```
 
 ---
 
-### 4.4 Turbidity Index
+## 5. Texture Feature Extraction (optional)
 
-A turbidity-related spectral feature is computed from the visible bands to characterize variations in suspended material and water optical properties.
+When `--use_texture_features True` is passed, two spatial features are stacked on top of the spectral block. They are computed from a luminance composite of the visible bands (B4, B3, B2), using Rec. 601 weights:
 
-The exact formulation used by the implementation is documented in the corresponding preprocessing code.
+```
+gray = 0.299 * B4 + 0.587 * B3 + 0.114 * B2
+```
 
-Turbidity information is useful because highly turbid coastal water can produce spectral responses that differ substantially from clearer open water.
+### 5.1 Local standard deviation
 
----
+Computed over a 13 by 13 window using the identity Var(X) = E[X^2] - E[X]^2 with fast windowed means:
 
-### 4.5 Floating Algae Index (FAI)
+```
+local_mean    = uniform_filter(gray, size=13)
+local_sq_mean = uniform_filter(gray * gray, size=13)
+local_var     = clip(local_sq_mean - local_mean ** 2, 0, None)
+local_std     = sqrt(local_var)
+```
 
-The **Floating Algae Index (FAI)** is calculated using the red, NIR, and SWIR spectral response to identify anomalous surface reflectance associated with floating material.
+The window size matches the 13 by 13 GLCM window used by the MARIDA Random Forest.
 
-The implementation uses the Sentinel-2 bands available at the selected spatial resolution.
+### 5.2 Gradient magnitude
 
-FAI is particularly useful for characterizing floating surface features and can provide additional information for distinguishing vegetation-like material from surrounding water.
+Computed using the Sobel operator:
 
----
+```
+gx = sobel(gray, axis=1)
+gy = sobel(gray, axis=0)
+gradient_magnitude = sqrt(gx ** 2 + gy ** 2)
+```
 
-### 4.6 Floating Debris Index (FDI)
+### Channel order
 
-The **Floating Debris Index (FDI)** is used as an additional feature for identifying spectral anomalies associated with floating surface material.
+The two texture features are stacked in this fixed order:
 
-FDI complements the original spectral bands by explicitly representing relationships between visible, NIR, and SWIR reflectance.
+```
+[local_std, gradient_magnitude]
+```
 
-The exact formulation and band configuration used in MSSD are provided in the implementation.
+### Relationship to the Random Forest GLCM features
 
----
+The Random Forest baselines use the full six-property GLCM (contrast, dissimilarity, homogeneity, energy, correlation, ASM) computed over the same 13 by 13 window, quantized to 17 levels and averaged over four angles. That is a much heavier computation than the two proxy texture features above, and it is only practical to run offline as part of the Random Forest feature cache.
 
-## 5. Texture Feature Extraction
-
-Spectral information alone may not be sufficient to distinguish potential debris from visually similar water-surface phenomena.
-
-To provide additional spatial context, three texture features are calculated:
-
-### Local Variance
-
-Measures local variability in pixel intensity and can highlight heterogeneous surface regions.
-
-### Entropy
-
-Measures local information content and spatial complexity.
-
-### Edge Density
-
-Measures the concentration of local intensity transitions and can help characterize boundaries and small structures.
-
-The texture features are computed over local spatial neighborhoods and aligned to the same **20 m grid** as the spectral features.
+The two proxy features used by the deep learning models are a cheap approximation that captures the same underlying signal (how rough and high-contrast the local neighborhood is) without requiring per-pixel GLCM.
 
 ---
 
 ## 6. Feature Stack
 
-After spectral and texture processing, the model input consists of the following feature groups:
+Depending on which optional flags are enabled, the model input is one of:
 
-```text
-6 Spectral Bands
-        +
-6 Spectral Indices
-        +
-3 Texture Features
-        │
-        ▼
-15 Feature Channels
+| Flags | Channels | Content |
+| ----- | -------: | ------- |
+| (none) | 11 | 11 raw bands |
+| `--use_spectral_indices True` | 17 | 11 raw + 6 indices |
+| `--use_texture_features True` | 13 | 11 raw + 2 texture |
+| both | 19 | 11 raw + 6 indices + 2 texture |
+
+The channel ordering within each block is fixed and always the same:
+
+```
+[11 raw bands] [6 spectral indices] [2 texture features]
 ```
 
-The resulting feature tensor can be represented as:
-
-```text
-H × W × 15
-```
-
-where:
-
-* `H` = image height
-* `W` = image width
-* `15` = number of input feature channels
-
-The exact channel ordering is kept fixed throughout training and inference.
+This order is preserved across training, validation, evaluation, and inference.
 
 ---
 
 ## 7. Spatial Alignment
 
-All input features and target labels are transformed into a common spatial reference system and grid.
+All input features and labels are aligned on the same grid.
 
-The preprocessing pipeline ensures:
+- Identical spatial extent
+- Identical pixel size
+- Identical coordinate reference system
+- Pixel-to-pixel alignment between inputs and labels
 
-* Identical spatial extent
-* Identical pixel size
-* Identical coordinate reference system
-* Pixel-to-pixel alignment between inputs and labels
-
-This is essential for semantic segmentation because each input pixel must correspond directly to the correct target label.
+For MARIDA, patches are already 256 x 256 pixels at 10 m resolution and require no resizing. For MADOS, patches are natively 240 x 240 pixels and are center-padded (with reflection) and cropped to 256 x 256 during loading. Padded regions are labelled -1 so they never contribute to the loss or metrics.
 
 ---
 
 ## 8. Normalization
 
-Feature normalization is applied before model training.
+Normalization is applied to the raw spectral bands only. Two things are important to note:
 
-Continuous input channels are scaled using statistics computed from the **training set only**.
+### 8.1 Fixed statistics, not train-set statistics
 
-This prevents information from the validation or test sets from leaking into the training process.
+MSSD uses fixed per-band means and standard deviations from the MARIDA reference:
 
-The normalization parameters are saved and reused during validation and inference so that all datasets are processed consistently.
+```
+BANDS_MEAN = [0.05197577, 0.04783991, 0.04056812, 0.03163572, 0.02972606,
+              0.03457443, 0.03875053, 0.03436435, 0.03921130, 0.02358126, 0.01588816]
 
-```text
-Training Set
-     │
-     ├── Calculate normalization statistics
-     │
-     ▼
-Normalize Training Data
-     │
-     ├── Save parameters
-     │
-     ├── Apply to Validation Data
-     │
-     └── Apply to Test / Inference Data
+BANDS_STD  = [0.04725893, 0.04743808, 0.04699043, 0.04967381, 0.04946782,
+              0.06458357, 0.07594915, 0.07120246, 0.08251058, 0.05111466, 0.03524419]
+```
+
+These are applied through `torchvision.transforms.Normalize(BANDS_MEAN, BANDS_STD)` at load time.
+
+Because the statistics are fixed, there is no train/val/test leakage risk from the normalization step itself. The statistics are also identical between a MARIDA-trained and a MADOS-trained model, which is intentional so that cross-dataset evaluation (evaluate_on_mados.py) does not require re-fitting.
+
+### 8.2 What is not normalized
+
+Spectral indices and texture features are already bounded quantities (indices roughly in [-1, 1], texture magnitudes small and non-negative). They are concatenated to the raw bands after the raw bands have been standardized, and they are not passed through the same mean/std normalization.
+
+Spectral jitter, when enabled during training, is applied only to the raw bands, never to the derived indices, texture features, or the labels.
+
+### 8.3 Order of operations inside the loader
+
+For one training sample, the loader performs the following steps in order:
+
+```
+1. Read the (11, H, W) raw patch and (H, W) mask
+2. Move raw patch to channels-last: (H, W, 11)
+3. Impute NaNs with BANDS_MEAN
+4. Compute spectral indices and texture features from the imputed raw data,
+   concatenate them as extra channels: (H, W, 11 + extras)
+5. Optional copy-paste augmentation (rare classes only)
+6. Geometric transform (rotate, flip) applied jointly to image and mask
+7. Optional spectral jitter applied to raw bands only
+8. Standardize raw bands with fixed BANDS_MEAN / BANDS_STD
+9. Re-concatenate: [standardized raw bands | untouched extra channels]
 ```
 
 ---
 
 ## 9. Patch Generation
 
-Large satellite scenes are divided into smaller spatial patches suitable for deep learning.
+Large scenes are divided into fixed-size spatial patches.
 
 Each patch contains:
 
-```text
-Input:
-H × W × 15
-
-Target:
-H × W
+```
+Input:  (H, W, C) tensor, where C is 11, 13, 17, or 19
+Target: (H, W) integer mask with class labels in 0..10 and -1 for unlabeled
 ```
 
-where each target pixel represents the corresponding segmentation class.
+Patches that contain no labeled pixels at all are skipped during training and evaluation because they cannot contribute a training signal or a per-class metric.
 
-Patches containing insufficient valid pixels are excluded from the training dataset.
-
-This reduces the influence of heavily masked or unusable regions.
+The MARIDA and MADOS splits (train, val, test) are provided as scene-level lists of patch identifiers, so no patch can appear in more than one split.
 
 ---
 
 ## 10. Label Preparation
 
-Reference debris annotations are converted to a pixel-level segmentation mask aligned with the Sentinel-2 feature grid.
+Reference annotations are provided as pixel-level masks aligned with the Sentinel-2 feature grid.
 
-The segmentation target uses three classes:
+MARIDA natively uses 15 classes. The preprocessing aggregates four water sub-classes into Marine Water, matching the MARIDA paper:
 
-| Class | Description        |
-| ----: | ------------------ |
-|     0 | Water              |
-|     1 | Marine debris      |
-|     2 | Other / background |
+| Original class | Aggregated into |
+| -------------- | --------------- |
+| Waves (12) | Marine Water (7) |
+| Cloud Shadows (13) | Marine Water (7) |
+| Wakes (14) | Marine Water (7) |
+| Mixed Water (15) | Marine Water (7) |
 
-Invalid pixels identified by the quality mask are excluded from training and evaluation.
+After aggregation, the 11-class taxonomy is:
 
-The final target therefore contains both semantic labels and a validity mask:
+| Index | Class | 
+| ----: | ----- |
+| 0 | Marine Debris |
+| 1 | Dense Sargassum |
+| 2 | Sparse Sargassum |
+| 3 | Natural Organic Material |
+| 4 | Ship |
+| 5 | Clouds |
+| 6 | Marine Water |
+| 7 | Sediment-Laden Water |
+| 8 | Foam |
+| 9 | Turbid Water |
+| 10 | Shallow Water |
 
-```text
-Input Tensor
-      │
-      ├── 15 feature channels
-      │
-      ▼
-MSSD-Net
-      │
-      ▼
-3-class segmentation map
-      │
-      └── Validity mask
-```
+Note that class 5 (Clouds) exists in MARIDA but does not exist in MADOS. When training on MADOS only, Clouds is excluded from the macro average and cannot be learned, because there are no Cloud pixels to learn from.
+
+### MADOS to MARIDA crosswalk
+
+The MADOS loader (`mados_dataloader.py`) remaps the 15-class MADOS taxonomy to the 11-class MARIDA taxonomy through a fixed crosswalk. Four MADOS classes (Oil Spills, Oil Platforms, Jellyfish Aggregations, Sea Snot) have no MARIDA equivalent. Their pixels are labeled -1 (ignored) rather than guessed at.
+
+The mapping is:
+
+| MADOS index | MADOS class | MARIDA index |
+| ----------- | ----------- | ------------ |
+| 0 | Marine Debris | 0 |
+| 1 | Dense Sargassum | 1 |
+| 2 | Sparse Floating Algae | 2 |
+| 3 | Natural Organic Material | 3 |
+| 4 | Ships | 4 |
+| 5 | Oil Spills | -1 (ignored) |
+| 6 | Marine Water | 6 |
+| 7 | Sediment-Laden Water | 7 |
+| 8 | Foam | 8 |
+| 9 | Turbid Water | 9 |
+| 10 | Shallow Water | 10 |
+| 11 | Waves | 6 (Marine Water) |
+| 12 | Oil Platforms | -1 (ignored) |
+| 13 | Jellyfish Aggregations | -1 (ignored) |
+| 14 | Sea Snot | -1 (ignored) |
+
+Pixels labeled -1 are excluded from the loss and from all reported metrics.
 
 ---
 
 ## 11. Data Leakage Prevention
 
-To ensure reliable evaluation, preprocessing is performed with strict separation between training, validation, and test data.
+Preprocessing is performed with strict separation between training, validation, and test data.
 
-In particular:
-
-* Normalization statistics are calculated using the training set only.
-* Test scenes are not used to determine preprocessing parameters.
-* Scene-level separation is maintained where applicable.
-* Augmentation is applied only to training samples.
-
-This prevents spatial or statistical information from the evaluation dataset from influencing model training.
+- The MARIDA and MADOS splits are scene-level, so no patch appears in two splits.
+- Normalization statistics are fixed constants, not fitted to any split, so there is no fitting leakage.
+- Augmentation (rotation, flip, spectral jitter, rare-class copy-paste, oversampling) is applied only to training samples.
+- Evaluation uses the deterministic transforms only (ToTensor, no rotation, no flip, no jitter).
 
 ---
 
 ## 12. Final Training Input
 
-After preprocessing, each training sample contains:
+After preprocessing, a training sample contains:
 
-```text
+```
 Input
-├── 6 Sentinel-2 spectral bands
-├── 6 derived spectral indices
-└── 3 texture features
+├── 11 raw Sentinel-2 bands (standardized)
+├── 6 spectral indices (optional)
+└── 2 texture features (optional)
 
-        ↓
+        |
+        v
 
-15-channel feature tensor
+11, 13, 17, or 19 channel tensor (H, W, C)
 
-        ↓
+        |
+        v
 
-MSSD-Net
+MSSD-Net / U-Net
 
-        ↓
+        |
+        v
 
-Pixel-level segmentation
-
-        ↓
-
-Water / Marine Debris / Other
+11-class segmentation logits (H, W, 11)
 ```
 
-The complete preprocessing pipeline converts heterogeneous satellite observations into a standardized representation suitable for transformer-based semantic segmentation.
+At evaluation, the logits are converted to a predicted class per pixel by argmax, restricted to pixels where the reference label is not -1.
 
 ---
 
 ## 13. Summary
 
-The MSSD preprocessing pipeline combines **spectral information, spectral indices, spatial texture, and quality masks** to create a robust representation of coastal water environments.
+The preprocessing pipeline combines spectral bands, optional spectral indices, optional texture features, and a fixed normalization scheme into a single standardized tensor that is used by every deep learning model in the project.
 
 The complete workflow is:
 
-```text
-Sentinel-2 L2A
-      ↓
-Scene Filtering
-      ↓
-Band Selection
-      ↓
-20 m Resampling
-      ↓
-SCL / NoData Masking
-      ↓
-Spectral Index Calculation
-      ↓
-Texture Extraction
-      ↓
-Feature Alignment
-      ↓
-Training-set Normalization
-      ↓
-Patch Generation
-      ↓
-Label Alignment
-      ↓
-15-Channel Training Tensor
-      ↓
-MSSD-Net
 ```
-
-This preprocessing stage provides the standardized input required for the MSSD-Net segmentation model while preserving the spatial and spectral information needed for potential marine-debris detection.
+Sentinel-2 L2A
+      |
+      v
+Scene Filtering
+      |
+      v
+Band Alignment
+      |
+      v
+NaN Imputation with Band Means
+      |
+      v
+Spectral Index Calculation (optional)
+      |
+      v
+Texture Extraction (optional)
+      |
+      v
+Geometric Augmentation (training only)
+      |
+      v
+Standardization with Fixed MARIDA Statistics
+      |
+      v
+Patch Tensor (11 / 13 / 17 / 19 channels)
+      |
+      v
+MSSD-Net / U-Net
+```
