@@ -1,0 +1,11 @@
+# docker compose up --build        ->  http://localhost:8080
+services:
+  msdd:
+    build:
+      context: .
+      args:
+        FLUTTER_IMAGE: ghcr.io/cirruslabs/flutter:stable
+    image: msdd:latest
+    ports:
+      - "8080:80"
+    restart: unless-stopped

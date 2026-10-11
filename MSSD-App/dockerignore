@@ -1,0 +1,24 @@
+# Not needed to build the web version, and they make the build slower.
+.git
+.gitignore
+.idea
+.vscode
+*.iml
+
+.dart_tool
+build
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+android
+ios
+macos
+linux
+windows
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
+README.md
