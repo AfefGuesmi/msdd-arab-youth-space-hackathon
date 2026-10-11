@@ -1,4 +1,4 @@
-# MSSD: Marine Surface Debris Detection
+# MSDD: Marine Surface Debris Detection
 
 **Arab Youth Space Hackathon, 813 Challenge**
 **Theme 03: Marine and Water Security**
@@ -31,7 +31,7 @@ An end-to-end framework for detecting, mapping, and prioritizing floating marine
 
 ## Overview
 
-Marine Surface Debris Detection (MSSD) is an Earth observation and deep learning framework that detects and maps potential floating marine debris in coastal waters.
+Marine Surface Debris Detection (MSDD) is an Earth observation and deep learning framework that detects and maps potential floating marine debris in coastal waters.
 
 The system combines Sentinel-2 multispectral imagery, spectral indices, texture features, transformer-based semantic segmentation, and geospatial post-processing to turn satellite observations into actionable debris maps for environmental monitoring agencies, researchers, and coastal cleanup teams.
 
@@ -44,13 +44,13 @@ Sentinel-2 L2A Imagery
 Feature Engineering (spectral bands, indices, texture)
         |
         v
-MSSD-Net (transformer segmentation)
+MSDD-Net (transformer segmentation)
         |
         v
 Post-processing (morphology, connected components, confidence)
         |
         v
-MSSD-App (debris maps, risk visualization, reports)
+MSDD-App (debris maps, risk visualization, reports)
 ```
 
 ---
@@ -67,7 +67,7 @@ Satellite remote sensing offers a scalable alternative, but debris occupies only
 
 ## Method
 
-### MSSD-Net
+### MSDD-Net
 
 A transformer-based semantic segmentation model producing pixel-level debris probabilities from combined spectral, derived, and spatial features.
 
@@ -146,17 +146,17 @@ msdd-arab-youth-space-hackathon/
 |   |-- RESULTS.md
 |   |-- TECHNICAL_DOCUMENT.md
 |-- msdd_net/
-|   |-- mssd_net.py                    MSSD-Net (Swin-UNet V2 + ablation modules)
+|   |-- msdd_net.py                    MSDD-Net (Swin-UNet V2 + ablation modules)
 |   |-- swin_unet_v2.py                Swin Transformer V2 building blocks
 |   |-- unet.py                        MARIDA-paper U-Net baseline
 |   |-- rf_features.py                 RF features (bands, indices, dense GLCM)
 |   |-- dataloader.py                  MARIDA dataset loader
 |   |-- mados_dataloader.py            MADOS dataset loader + class crosswalk
 |   |-- training_utils.py              Losses, schedulers, optimizers
-|   |-- train_marida.py                Train U-Net or MSSD-Net on MARIDA
-|   |-- train_on_mados.py              Train MSSD-Net on MADOS
+|   |-- train_marida.py                Train U-Net or MSDD-Net on MARIDA
+|   |-- train_on_mados.py              Train MSDD-Net on MADOS
 |   |-- train_rf.py                    Train and evaluate Random Forest baselines
-|   |-- evaluation_swin_unetv2.py      MARIDA test evaluation (MSSD-Net / U-Net)
+|   |-- evaluation_swin_unetv2.py      MARIDA test evaluation (MSDD-Net / U-Net)
 |   |-- evaluate_on_mados.py           MADOS test evaluation
 |   |-- plot_qualitative.py            Multi-model qualitative figures (MARIDA)
 |   |-- generate_qualitative_results.py Per-patch triplets (MADOS)
@@ -173,7 +173,7 @@ msdd-arab-youth-space-hackathon/
 Requires Python 3.9 or newer.
 
 ```bash
-git clone -b refactor/mssd-net-baselines https://github.com/AfefGuesmi/msdd-arab-youth-space-hackathon.git
+git clone https://github.com/AfefGuesmi/msdd-arab-youth-space-hackathon.git
 cd msdd-arab-youth-space-hackathon
 
 python -m venv .venv
@@ -199,7 +199,7 @@ cd msdd_net
 | ---- | ------- | ---- |
 | 1. Random Forest | `python train_rf.py --features ss_si_glcm` | minutes (CPU) |
 | 2. U-Net | `python train_marida.py --model unet` | ~1 h (GPU) |
-| 3. MSSD-Net | `python train_marida.py --model mssd --variant baseline` | ~6 h (GPU) |
+| 3. MSDD-Net | `python train_marida.py --model msdd --variant baseline` | ~6 h (GPU) |
 | 4. Evaluate | `python evaluation_swin_unetv2.py --model_type swin --variant baseline` | minutes |
 | 5. Figures | `python plot_qualitative.py --n_patches 6 --models ...` | minutes |
 
@@ -262,19 +262,19 @@ python train_marida.py --model unet \
 
 Checkpoints go to `trained_models/unet/best_model.pth`.
 
-### 3. MSSD-Net on MARIDA
+### 3. MSDD-Net on MARIDA
 
 Defaults are automatically switched to a Swin-appropriate recipe (lr `1e-4`, batch 8, 150 epochs, cosine schedule with 5 warmup epochs, `ce_dice` loss, ImageNet pretrained encoder, patience 25).
 
 ```bash
 # Plain Swin-UNet V2 baseline (best variant in our ablation)
-python train_marida.py --model mssd --variant baseline --data_path data
+python train_marida.py --model msdd --variant baseline --data_path data
 
-# Full MSSD-Net (dilated bottleneck + attention refinement + residual fusion)
-python train_marida.py --model mssd --variant full --data_path data
+# Full MSdD-Net (dilated bottleneck + attention refinement + residual fusion)
+python train_marida.py --model msdd --variant full --data_path data
 
 # Add spectral indices and texture features (17 or 19 input channels)
-python train_marida.py --model mssd --variant full \
+python train_marida.py --model msdd --variant full \
     --use_spectral_indices True \
     --use_texture_features True
 ```
@@ -296,14 +296,14 @@ Checkpoints go to `trained_models/<variant>/best_model.pth`.
 Override any default:
 
 ```bash
-python train_marida.py --model mssd --variant full \
+python train_marida.py --model msdd --variant full \
     --epochs 200 --batch 4 --lr 5e-5 \
     --scheduler sgdr --weight_param 1.03 \
     --patience 40 --encoder_lr_mult 1.0 \
     --oversample_rare True --rare_classes 0,2,3,8
 ```
 
-### 4. MSSD-Net on MADOS
+### 4. MSDD-Net on MADOS
 
 Requires MADOS to be downloaded and stacked (see [Data](#data)).
 
@@ -325,10 +325,10 @@ Checkpoints go to `trained_models/mados_only/<variant>/best_model.pth`.
 
 ### MARIDA test set
 
-Works for both U-Net and MSSD-Net checkpoints. Writes a per-class report to `logs/` and full-resolution prediction masks to `data/predicted_masks/`.
+Works for both U-Net and MSDD-Net checkpoints. Writes a per-class report to `logs/` and full-resolution prediction masks to `data/predicted_masks/`.
 
 ```bash
-# MSSD-Net
+# MSDD-Net
 python evaluation_swin_unetv2.py \
     --model_type swin --variant baseline \
     --model_path trained_models/baseline/best_model.pth \
@@ -385,7 +385,7 @@ Puts RGB, reference labels, and every model's prediction side by side. Patches a
 python plot_qualitative.py --data_path data --n_patches 6 --models \
     "RF SS+SI+GLCM=trained_models/rf_ss_si_glcm/predictions" \
     "U-Net=trained_models/unet/best_model.pth" \
-    "MSSD-Net=trained_models/baseline/best_model.pth"
+    "MSDD-Net=trained_models/baseline/best_model.pth"
 ```
 
 Writes to `qualitative_results/marida_comparison/`:
@@ -438,7 +438,7 @@ docker run --rm -it \
     python train_rf.py --features ss_si_glcm
 ```
 
-### Run (MSSD-Net training, GPU)
+### Run (MSDD-Net training, GPU)
 
 ```bash
 docker run --rm -it --gpus all \
@@ -446,7 +446,7 @@ docker run --rm -it --gpus all \
     -v "$PWD/trained_models:/workspace/msdd_net/trained_models" \
     -v "$PWD/qualitative_results:/workspace/msdd_net/qualitative_results" \
     msdd:gpu \
-    python train_marida.py --model mssd --variant baseline
+    python train_marida.py --model msdd --variant baseline
 ```
 
 ### Run with docker-compose
@@ -458,8 +458,8 @@ docker compose run --rm rf
 # U-Net
 docker compose run --rm unet
 
-# MSSD-Net (needs GPU)
-docker compose run --rm mssd
+# MSDD-Net (needs GPU)
+docker compose run --rm msdd
 ```
 
 ---
@@ -477,7 +477,7 @@ Full tables are in [`docs/RESULTS.md`](docs/RESULTS.md). The MARIDA baseline rep
 | RF_SS+SI+GLCM | 0.65 | 0.79 | **0.69** | **0.79** |
 | U-Net | 0.33 | 0.50 | 0.57 | 0.69 |
 
-### MSSD-Net (MADOS test split)
+### MSDD-Net (MADOS test split)
 
 | Variant | Marine Debris F1 | Marine Debris IoU | Macro F1 | Macro mIoU |
 | ------- | ---------------: | ----------------: | -------: | ---------: |
@@ -497,7 +497,7 @@ Pretrained weights and precomputed features are hosted on Google Drive:
 | -------- | ----------- | ---- |
 | `marida_patches.zip` | MARIDA patches + splits | https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID |
 | `mados_nearest.zip` | MADOS stacked patches + splits | https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID |
-| `checkpoints.zip` | All trained checkpoints (U-Net, RF, MSSD-Net variants) | https://drive.google.com/drive/folders/REPLACE-WITH-CKPT-FOLDER-ID |
+| `checkpoints.zip` | All trained checkpoints (U-Net, RF, MSDD-Net variants) | https://drive.google.com/drive/folders/REPLACE-WITH-CKPT-FOLDER-ID |
 | `qualitative_results.zip` | Rendered figures for the report | https://drive.google.com/drive/folders/REPLACE-WITH-FIGURES-FOLDER-ID |
 
 After downloading `checkpoints.zip`, unzip so that `trained_models/` is populated at the repository root. Then run evaluation directly:
@@ -514,7 +514,7 @@ python evaluation_swin_unetv2.py \
 
 ## Limitations
 
-MSSD predictions should be interpreted as potential debris detections requiring further validation, not as definitive confirmation of physical debris.
+MSDD predictions should be interpreted as potential debris detections requiring further validation, not as definitive confirmation of physical debris.
 
 - Small debris may fall below the effective spatial resolution of Sentinel-2.
 - Sun glint and surface reflections can produce false positives.
@@ -523,7 +523,7 @@ MSSD predictions should be interpreted as potential debris detections requiring 
 - Limited ground-truth data affects generalization.
 - Performance varies across geography, season, and environmental conditions.
 
-MSSD is a decision-support and prioritization system, not a replacement for field verification.
+MSDD is a decision-support and prioritization system, not a replacement for field verification.
 
 ---
 
