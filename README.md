@@ -1,9 +1,9 @@
-# MSSD: Marine Surface Debris Detection
+# MSDD: Marine Surface Debris Detection
 
 **Arab Youth Space Hackathon, 813 Challenge**
 **Theme 03: Marine and Water Security**
 
-![Plastics in the ocean](assests/noaa_marine_debris_pathways.png)
+![Plastics in the ocean](assets/noaa_marine_debris_pathways.png)
 
 An end-to-end framework for detecting, mapping, and prioritizing floating marine debris in coastal waters from Sentinel-2 imagery.
 
@@ -11,7 +11,7 @@ An end-to-end framework for detecting, mapping, and prioritizing floating marine
 
 ## Overview
 
-Marine Surface Debris Detection (MSSD) is an Earth observation and deep learning framework that detects and maps potential floating marine debris in coastal waters.
+Marine Surface Debris Detection (MSDD) is an Earth observation and deep learning framework that detects and maps potential floating marine debris in coastal waters.
 
 The system combines Sentinel-2 multispectral imagery, spectral indices, texture features, transformer-based semantic segmentation, and geospatial post-processing to turn satellite observations into actionable debris intelligence for environmental monitoring agencies, researchers, and coastal cleanup teams.
 
@@ -19,8 +19,8 @@ The project has two independent but complementary components. Each has its own R
 
 | Component | Description | README |
 | --------- | ----------- | ------ |
-| **MSSD-Net** | Deep learning pipeline: data loading, feature engineering, model training, evaluation, figure generation | [MSSD-Net/README.md](MSSD-Net/README.md) |
-| **MSSD-App** | Flutter application: interactive debris map, danger levels, PDF reports | [MSSD-App/README.md](MSSD-App/README.md) |
+| **MSDD-Net** | Deep learning pipeline: data loading, feature engineering, model training, evaluation, figure generation | [MSDD-Net/README.md](MSDD-Net/README.md) |
+| **MSDD-App** | Flutter application: interactive debris map, danger levels, PDF reports | [MSDD-App/README.md](MSDD-App/README.md) |
 
 ---
 
@@ -30,32 +30,32 @@ The project has two independent but complementary components. Each has its own R
 Sentinel-2 L2A Imagery
         |
         v
-Feature Engineering  (MSSD-Net)
+Feature Engineering  (MSDD-Net)
         |
         v
-MSSD-Net Segmentation
+MSDD-Net Segmentation
         |
         v
 Post-processing and Debris Report (CSV)
         |
         v
-Interactive Map and PDF Export  (MSSD-App)
+Interactive Map and PDF Export  (MSDD-App)
 ```
 
 ---
 
 ## Quick Start
 
-### MSSD-Net (deep learning)
+### MSDD-Net (deep learning)
 
 Requires Python 3.9 or newer.
 
 ```bash
-cd MSSD-Net
+cd MSDD-Net
 python -m venv .venv
 source .venv/bin/activate           # Windows: .venv\Scripts\activate
 
-# Install CUDA-enabled PyTorch first (adjust for your driver)
+# Install CUDA-enabled PyTorch first 
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
 
@@ -65,65 +65,65 @@ python train_rf.py --features ss_si_glcm
 # U-Net baseline (GPU, about 1 hour)
 python train_marida.py --model unet
 
-# MSSD-Net (GPU, about 6 to 10 hours)
+# MSDD-Net (GPU, about 6 to 10 hours)
 python train_marida.py --model mssd --variant baseline
 
 # Evaluate on the MARIDA test set
 python evaluation_swin_unetv2.py --model_type swin --variant baseline
 ```
 
-Full instructions: [MSSD-Net/README.md](MSSD-Net/README.md)
+Full instructions: [MSDD-Net/README.md](MSDD-Net/README.md)
 
-### MSSD-App (Flutter application)
+### MSDD-App (Flutter application)
 
 Requires the Flutter SDK (3.27 or newer).
 
 ```bash
-cd MSSD-App
+cd MSDD-App
 flutter pub get
 flutter run                    # Android emulator or connected phone
 flutter run -d chrome          # in the browser
 ```
 
-Full instructions: [MSSD-App/README.md](MSSD-App/README.md)
+Full instructions: [MSDD-App/README.md](MSDD-App/README.md)
 
 ### Docker
 
 Each component ships with its own Dockerfile and `docker-compose.yml`. See the subfolder README for full detail; the essentials are:
 
-**MSSD-Net** (CPU image for Random Forest, CUDA image for training and GPU inference):
+**MSDD-Net** (CPU image for Random Forest, CUDA image for training and GPU inference):
 
 ```bash
-cd MSSD-Net
-docker build -t mssdnet:cpu --target cpu .
-docker build -t mssdnet:gpu --target gpu .
+cd MSDD-Net
+docker build -t msddnet:cpu --target cpu .
+docker build -t msddnet:gpu --target gpu .
 
 # Random Forest, CPU
 docker run --rm -it \
     -v "$PWD/data:/workspace/data" \
     -v "$PWD/trained_models:/workspace/trained_models" \
-    mssdnet:cpu python train_rf.py --features ss_si_glcm
+    msddnet:cpu python train_rf.py --features ss_si_glcm
 
-# MSSD-Net training, GPU
+# MSDD-Net training, GPU
 docker run --rm -it --gpus all \
     -v "$PWD/data:/workspace/data" \
     -v "$PWD/trained_models:/workspace/trained_models" \
-    mssdnet:gpu python train_marida.py --model mssd --variant baseline
+    msddnet:gpu python train_marida.py --model mssd --variant baseline
 ```
 
-**MSSD-App** (web build served by nginx):
+**MSDD-App** (web build served by nginx):
 
 ```bash
-cd MSSD-App
-docker build -t mssdapp .
-docker run --rm -p 8080:80 mssdapp
+cd MSDD-App
+docker build -t msddapp .
+docker run --rm -p 8080:80 msddapp
 # open http://localhost:8080
 
 # or with compose
 docker compose up --build
 ```
 
-Full Docker instructions: [MSSD-Net/README.md](MSSD-Net/README.md) and [MSSD-App/README.md](MSSD-App/README.md).
+Full Docker instructions: [MSDD-Net/README.md](MSDD-Net/README.md) and [MSDD-App/README.md](MSDD-App/README.md).
 
 ---
 
@@ -146,20 +146,17 @@ Labels are sparse. Unlabelled pixels are ignored during training and evaluation.
 
 All pretrained weights, prepared datasets, and rendered figures are hosted on Google Drive.
 
-| Artifact                         | Description | Link |
-|----------------------------------| ----------- | ---- |
-| Patches and splits               | Ready to use with `MSSD-Net/data/` | [Google Drive](https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID) |
-| MADOS stacked patches and splits | Ready to use with `--mados_path` | [Google Drive](https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID) |
-| Trained checkpoints              | U-Net, Random Forest, all MSSD-Net variants | [Google Drive](https://drive.google.com/drive/folders/REPLACE-WITH-CKPT-FOLDER-ID) |
-| Qualitative figures              | Per-patch RGB / label / prediction renders | [Google Drive](https://drive.google.com/drive/folders/1ZAEIuOSuvwX1IzzUXeZEm4ezCXIxMIRT) |
+| Artifact | Description | Link |
+| -------- | ----------- | ---- |
+| Trained checkpoints | U-Net, Random Forest, all MSDD-Net variants | [Google Drive](https://drive.google.com/file/d/1tpfs4i43Wr_WF6qJyqn3HPJAbEgtzIF2/view?usp=sharing) |
 
-After unzipping `checkpoints.zip`, `MSSD-Net/trained_models/` should contain `unet/`, `rf_ss_si_glcm/`, `baseline/`, `full/`, and `only_residual/` subfolders.
+After unzipping `checkpoints.zip`, `MSDD-Net/trained_models/` should contain `unet/`, `rf_ss_si_glcm/`, `baseline/`, `full/`, and `only_residual/` subfolders.
 
 ---
 
 ## Results Summary
 
-Full tables are in [MSSD-Net/docs/RESULTS.md](MSSD-Net/docs/RESULTS.md).
+Full tables are in [MSDD-Net/docs/RESULTS.md](MSDD-Net/docs/RESULTS.md).
 
 ### MARIDA paper baselines (MARIDA test split)
 
@@ -170,7 +167,7 @@ Full tables are in [MSSD-Net/docs/RESULTS.md](MSSD-Net/docs/RESULTS.md).
 | RF_SS+SI+GLCM | 0.65 | 0.79 | **0.69** | **0.79** |
 | U-Net | 0.33 | 0.50 | 0.57 | 0.69 |
 
-### MSSD-Net variants (held-out test split)
+### MSDD-Net variants (held-out test split)
 
 | Variant | Marine Debris F1 | Marine Debris IoU | Macro F1 | Macro mIoU |
 | ------- | ---------------: | ----------------: | -------: | ---------: |
@@ -178,7 +175,7 @@ Full tables are in [MSSD-Net/docs/RESULTS.md](MSSD-Net/docs/RESULTS.md).
 | only_residual | 67.53% | 50.98% | 74.88% | 64.07% |
 | full | 56.77% | 39.63% | 71.69% | 60.11% |
 
-**Main finding:** the plain Swin-UNet V2 baseline outperforms the full MSSD-Net on the target Marine Debris class by 12.29 F1 points. The additional architectural modules help larger, more spatially coherent classes but not the sparse debris target.
+**Main finding:** the plain Swin-UNet V2 baseline outperforms the full MSDD-Net on the target Marine Debris class by 12.29 F1 points. The additional architectural modules help larger, more spatially coherent classes but not the sparse debris target.
 
 The two tables use different test sets and cannot be compared directly.
 
@@ -187,20 +184,20 @@ The two tables use different test sets and cannot be compared directly.
 ## Repository Structure
 
 ```
-mssd-arab-youth-space-hackathon/
+msdd-arab-youth-space-hackathon/
 |
 |-- README.md                This file
 |-- assets/
-|   `-- noaa_marine_debris_pathways.png      
+|   `-- mssd_banner.png      Banner image
 |
-|-- MSSD-Net/                Deep learning pipeline (see MSSD-Net/README.md)
+|-- MSDD-Net/                Deep learning pipeline (see MSDD-Net/README.md)
 |   |-- Dockerfile
 |   |-- docker-compose.yml
 |   |-- requirements.txt
 |   |-- docs/
 |   `-- ...                  Training, evaluation, and figure scripts
 |
-`-- MSSD-App/                Flutter application (see MSSD-App/README.md)
+`-- MSDD-App/                Flutter application (see MSDD-App/README.md)
     |-- Dockerfile
     |-- docker-compose.yml
     |-- pubspec.yaml
@@ -213,18 +210,18 @@ mssd-arab-youth-space-hackathon/
 
 | Document | Description |
 | -------- | ----------- |
-| [MSSD-Net/README.md](MSSD-Net/README.md) | Deep learning: installation, training, evaluation, figures, Docker |
-| [MSSD-App/README.md](MSSD-App/README.md) | Flutter app: features, setup, deployment, Docker |
-| [MSSD-Net/docs/PREPROCESSING.md](MSSD-Net/docs/PREPROCESSING.md) | Data preprocessing pipeline |
-| [MSSD-Net/docs/TECHNICAL_DOCUMENT.md](MSSD-Net/docs/TECHNICAL_DOCUMENT.md) | Full methodology |
-| [MSSD-Net/docs/RESULTS.md](MSSD-Net/docs/RESULTS.md) | Detailed evaluation results |
-| [MSSD-Net/docs/BASELINES.md](MSSD-Net/docs/BASELINES.md) | U-Net and Random Forest baselines |
+| [MSDD-Net/README.md](MSDD-Net/README.md) | Deep learning: installation, training, evaluation, figures, Docker |
+| [MSDD-App/README.md](MSDD-App/README.md) | Flutter app: features, setup, deployment, Docker |
+| [MSDD-Net/docs/PREPROCESSING.md](MSDD-Net/docs/PREPROCESSING.md) | Data preprocessing pipeline |
+| [MSDD-Net/docs/TECHNICAL_DOCUMENT.md](MSDD-Net/docs/TECHNICAL_DOCUMENT.md) | Full methodology |
+| [MSDD-Net/docs/RESULTS.md](MSDD-Net/docs/RESULTS.md) | Detailed evaluation results |
+| [MSDD-Net/docs/BASELINES.md](MSDD-Net/docs/BASELINES.md) | U-Net and Random Forest baselines |
 
 ---
 
 ## Limitations
 
-MSSD predictions are potential debris detections requiring further validation, not definitive confirmation of physical debris.
+MSDD predictions are potential debris detections requiring further validation, not definitive confirmation of physical debris.
 
 - Small debris can fall below Sentinel-2's effective spatial resolution.
 - Sun glint and surface reflections can produce false positives.
@@ -232,7 +229,7 @@ MSSD predictions are potential debris detections requiring further validation, n
 - Limited ground-truth data affects generalization.
 - Performance varies across geography, season, and environmental conditions.
 
-MSSD is designed as a decision-support and prioritization system, not a replacement for field verification.
+MSDD is designed as a decision-support and prioritization system, not a replacement for field verification.
 
 ---
 
