@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="1783f709-dff2-47e4-92b2-c12a3df948de" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/PREPROCESSING.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/PREPROCESSING.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/RESULTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/RESULTS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/TECHNICAL_DOCUMENT.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/TECHNICAL_DOCUMENT.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/msdd_net/dataloader.py" beforeDir="false" afterPath="$PROJECT_DIR$/msdd_net/dataloader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/msdd_net/evaluate_on_mados.py" beforeDir="false" afterPath="$PROJECT_DIR$/msdd_net/evaluate_on_mados.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/msdd_net/evaluation_swin_unetv2.py" beforeDir="false" afterPath="$PROJECT_DIR$/msdd_net/evaluation_swin_unetv2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/msdd_net/generate_qualitative_results.py" beforeDir="false" afterPath="$PROJECT_DIR$/msdd_net/generate_qualitative_results.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/msdd_net/mados_dataloader.py" beforeDir="false" afterPath="$PROJECT_DIR$/msdd_net/mados_dataloader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/msdd_net/mssd_net.py" beforeDir="false" afterPath="$PROJECT_DIR$/msdd_net/mssd_net.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/msdd_net/swin_unet_v2.py" beforeDir="false" afterPath="$PROJECT_DIR$/msdd_net/swin_unet_v2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/msdd_net/train_on_mados.py" beforeDir="false" afterPath="$PROJECT_DIR$/msdd_net/train_on_mados.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/legend.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0000/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0000/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0000/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0000/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0001/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0001/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0001/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0001/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0002/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0002/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0002/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0002/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0003/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0003/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0003/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0003/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0004/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0004/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0004/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0004/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0005/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0005/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0005/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0005/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0006/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0006/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0006/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0006/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0007/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0007/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0007/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0007/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0008/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0008/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0008/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0008/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0009/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0009/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0009/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0009/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0010/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0010/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0010/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0010/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0011/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0011/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0011/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0011/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0012/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0012/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0012/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0012/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0013/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0013/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0013/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0013/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0014/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0014/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0014/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0014/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0015/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0015/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0015/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0015/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0016/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0016/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0016/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0016/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0017/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0017/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0017/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0017/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0018/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0018/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0018/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0018/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0019/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0019/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0019/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/baseline/patch_0019/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/legend.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0000/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0000/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0000/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0000/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0001/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0001/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0001/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0001/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0002/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0002/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0002/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0002/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0003/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0003/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0003/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0003/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0004/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0004/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0004/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0004/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0005/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0005/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0005/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0005/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0006/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0006/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0006/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0006/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0007/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0007/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0007/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0007/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0008/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0008/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0008/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0008/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0009/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0009/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0009/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0009/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0010/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0010/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0010/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0010/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0011/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0011/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0011/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0011/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0012/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0012/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0012/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0012/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0013/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0013/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0013/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0013/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0014/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0014/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0014/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0014/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0015/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0015/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0015/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0015/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0016/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0016/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0016/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0016/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0017/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0017/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0017/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0017/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0018/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0018/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0018/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0018/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0019/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0019/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0019/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/full/patch_0019/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/legend.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0000/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0000/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0000/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0000/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0001/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0001/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0001/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0001/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0002/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0002/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0002/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0002/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0003/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0003/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0003/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0003/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0004/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0004/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0004/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0004/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0005/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0005/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0005/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0005/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0006/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0006/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0006/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0006/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0007/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0007/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0007/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0007/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0008/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0008/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0008/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0008/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0009/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0009/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0009/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0009/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0010/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0010/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0010/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0010/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0011/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0011/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0011/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0011/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0012/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0012/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0012/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0012/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0013/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0013/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0013/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0013/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0014/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0014/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0014/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0014/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0015/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0015/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0015/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0015/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0016/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0016/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0016/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0016/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0017/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0017/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0017/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0017/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0018/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0018/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0018/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0018/prediction.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0019/combined.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0019/input.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0019/label.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/qualitative_results/only_residual/patch_0019/prediction.png" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="3KW9ttVcJCn0Yhp1iXToOgcLvcs" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "C:/workspace/msdd-arab-youth-space-hackathon"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1783f709-dff2-47e4-92b2-c12a3df948de" name="Changes" comment="" />
+      <created>1791662675381</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1791662675381</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
