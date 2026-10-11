@@ -1,491 +1,275 @@
-# MSSD: Marine Surface Debris Surveillance
+# MSSD: Marine Surface Debris Detection
 
-**Arab Youth Space Hackathon - 813 Challenge**
-**Theme 03: Marine & Water Security**
+**Arab Youth Space Hackathon, 813 Challenge**
+**Theme 03: Marine and Water Security**
 
-> An end-to-end framework to detect, map, and prioritize floating marine debris in coastal waters using Sentinel-2 satellite imagery and deep learning.
+![Plastics in the ocean](assests/noaa_marine_debris_pathways.png)
 
-![Marine debris](https://i.pinimg.com/736x/77/d7/d3/77d7d304f1d50614b32ec3db97905e25.jpg)
+An end-to-end framework for detecting, mapping, and prioritizing floating marine debris in coastal waters from Sentinel-2 imagery.
+
 ---
 
 ## Overview
 
-**Marine Surface Debris Surveillance (MSSD)** is an Earth observation and deep learning framework that detects and maps potential floating marine debris in coastal waters.
+Marine Surface Debris Detection (MSSD) is an Earth observation and deep learning framework that detects and maps potential floating marine debris in coastal waters.
 
-The system combines **Sentinel-2 multispectral imagery, spectral indices, texture features, transformer-based semantic segmentation, and geospatial post-processing** to transform satellite observations into actionable debris maps.
+The system combines Sentinel-2 multispectral imagery, spectral indices, texture features, transformer-based semantic segmentation, and geospatial post-processing to turn satellite observations into actionable debris intelligence for environmental monitoring agencies, researchers, and coastal cleanup teams.
 
-The goal is to provide environmental monitoring agencies, researchers, and coastal cleanup teams with a scalable tool for identifying areas that may require further inspection and response.
+The project has two independent but complementary components. Each has its own README with full setup, training, and deployment instructions.
 
-### MSSD Pipeline
+| Component | Description | README |
+| --------- | ----------- | ------ |
+| **MSSD-Net** | Deep learning pipeline: data loading, feature engineering, model training, evaluation, figure generation | [MSSD-Net/README.md](MSSD-Net/README.md) |
+| **MSSD-App** | Flutter application: interactive debris map, danger levels, PDF reports | [MSSD-App/README.md](MSSD-App/README.md) |
 
-```text
+---
+
+## Pipeline
+
+```
 Sentinel-2 L2A Imagery
-        │
-        ▼
-┌──────────────────────────────┐
-│    Feature Engineering       │
-│                              │
-│  • Spectral bands            │
-│  • Spectral indices          │
-│  • Texture features          │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│          MSSD-Net            │
-│  Transformer Segmentation    │
-│                              │
-│  Debris / Water / Other      │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│       Post-processing        │
-│                              │
-│  • Morphological filtering   │
-│  • Connected components      │
-│  • Confidence estimation     │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│          MSSD-App            │
-│                              │
-│  • Debris maps               │
-│  • Risk visualization        │
-│  • Reports & exports         │
-└──────────────────────────────┘
+        |
+        v
+Feature Engineering  (MSSD-Net)
+        |
+        v
+MSSD-Net Segmentation
+        |
+        v
+Post-processing and Debris Report (CSV)
+        |
+        v
+Interactive Map and PDF Export  (MSSD-App)
 ```
 
 ---
 
-## Problem Statement
+## Quick Start
 
-Floating marine debris, particularly plastic waste, poses a major threat to marine ecosystems, fisheries, biodiversity, and coastal economies.
+### MSSD-Net (deep learning)
 
-Traditional marine debris monitoring often relies on:
+Requires Python 3.9 or newer.
 
-* Ship-based surveys
-* Aerial observations
-* Manual field inspections
+```bash
+cd MSSD-Net
+python -m venv .venv
+source .venv/bin/activate           # Windows: .venv\Scripts\activate
 
-These methods can be expensive, time-consuming, and difficult to scale over large coastal regions.
+# Install CUDA-enabled PyTorch first (adjust for your driver)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements.txt
 
-Satellite remote sensing provides a scalable alternative. However, detecting floating debris from satellite imagery is challenging because debris may occupy only a small portion of an image and can have spectral and spatial characteristics similar to natural ocean-surface phenomena.
+# Random Forest baseline (CPU, minutes)
+python train_rf.py --features ss_si_glcm
 
-Potential sources of confusion include:
+# U-Net baseline (GPU, about 1 hour)
+python train_marida.py --model unet
 
-* Ocean foam
-* Floating algae
-* Turbid water
-* Suspended sediment
-* Sun glint
-* Atmospheric and sensor effects
+# MSSD-Net (GPU, about 6 to 10 hours)
+python train_marida.py --model mssd --variant baseline
 
-This creates a challenging detection and class-imbalance problem.
+# Evaluate on the MARIDA test set
+python evaluation_swin_unetv2.py --model_type swin --variant baseline
+```
 
-### Objective
+Full instructions: [MSSD-Net/README.md](MSSD-Net/README.md)
 
-**Detect and spatially map potential floating marine debris from satellite imagery so that environmental monitoring and cleanup teams can prioritize areas for further inspection.**
+### MSSD-App (Flutter application)
 
----
+Requires the Flutter SDK (3.27 or newer).
 
-## Proposed Solution
+```bash
+cd MSSD-App
+flutter pub get
+flutter run                    # Android emulator or connected phone
+flutter run -d chrome          # in the browser
+```
 
-The MSSD framework consists of three main components:
+Full instructions: [MSSD-App/README.md](MSSD-App/README.md)
 
-### 1. MSSD-Net
+### Docker
 
-**MSSD-Net** is a transformer-based semantic segmentation model that produces pixel-level debris probabilities.
+Each component ships with its own Dockerfile and `docker-compose.yml`. See the subfolder README for full detail; the essentials are:
 
-The model uses a combination of spectral, derived, and spatial features.
+**MSSD-Net** (CPU image for Random Forest, CUDA image for training and GPU inference):
 
-#### Sentinel-2 Spectral Bands
+```bash
+cd MSSD-Net
+docker build -t mssdnet:cpu --target cpu .
+docker build -t mssdnet:gpu --target gpu .
 
-The input includes six Sentinel-2 bands:
+# Random Forest, CPU
+docker run --rm -it \
+    -v "$PWD/data:/workspace/data" \
+    -v "$PWD/trained_models:/workspace/trained_models" \
+    mssdnet:cpu python train_rf.py --features ss_si_glcm
 
-| Band | Description         |
-| ---- | ------------------- |
-| B02  | Blue                |
-| B03  | Green               |
-| B04  | Red                 |
-| B08  | Near Infrared       |
-| B11  | Short-Wave Infrared |
-| B12  | Short-Wave Infrared |
+# MSSD-Net training, GPU
+docker run --rm -it --gpus all \
+    -v "$PWD/data:/workspace/data" \
+    -v "$PWD/trained_models:/workspace/trained_models" \
+    mssdnet:gpu python train_marida.py --model mssd --variant baseline
+```
 
-#### Spectral Indices
+**MSSD-App** (web build served by nginx):
 
-Six additional features are derived from the spectral bands:
+```bash
+cd MSSD-App
+docker build -t mssdapp .
+docker run --rm -p 8080:80 mssdapp
+# open http://localhost:8080
 
-* NDVI: Normalized Difference Vegetation Index
-* NDWI: Normalized Difference Water Index
-* NDCI: Normalized Difference Chlorophyll Index
-* Turbidity
-* FAI: Floating Algae Index
-* FDI: Floating Debris Index
+# or with compose
+docker compose up --build
+```
 
-#### Texture Features
-
-The framework also incorporates spatial texture information:
-
-* Local variance
-* Entropy
-* Edge density
-
-These features provide additional spatial context that can help distinguish potential debris from surrounding water and other surface phenomena.
-
----
-
-### 2. Post-processing
-
-The raw model predictions are processed to produce cleaner and more interpretable detections.
-
-The post-processing pipeline includes:
-
-* Morphological filtering
-* Connected-component analysis
-* Noise removal
-* Spatial grouping
-* Confidence estimation
-
-The final output is a set of candidate debris regions together with their spatial location and confidence information.
-
----
-
-### 3. MSSD-App
-
-The application layer transforms model predictions into an interactive monitoring interface.
-
-The application is designed to provide:
-
-* Geolocated debris maps
-* Detection locations
-* Risk-level visualization
-* Confidence information
-* Downloadable reports
-
-This creates a bridge between AI-based image segmentation and practical environmental monitoring.
+Full Docker instructions: [MSSD-Net/README.md](MSSD-Net/README.md) and [MSSD-App/README.md](MSSD-App/README.md).
 
 ---
 
 ## Data
 
-MSSD uses **Copernicus Sentinel-2 Level-2A surface reflectance imagery** over coastal waters of the **Arabian Gulf, UAE**.
+Two public, expert-annotated Sentinel-2 benchmarks are used. UAE / Arabian Gulf imagery is the deployment target for the app.
 
-The imagery is accessed through the **Microsoft Planetary Computer STAC API**.
+| Dataset | Patches | Patch size | Bands | Classes used | Source |
+| ------- | ------: | ---------- | ----- | ------------ | ------ |
+| MARIDA (Kikaki et al. 2022) | 1,381 | 256 x 256, 10 m | 11 | 11 after aggregation | [Zenodo](https://zenodo.org/record/5151941) |
+| MADOS (Kikaki et al. 2024) | 2,803 | 240 x 240, padded to 256 | 11 | mapped to MARIDA's 11 | [Zenodo](https://zenodo.org/records/10430388) |
 
-### Dataset Configuration
+**Classes (11):** Marine Debris, Dense Sargassum, Sparse Sargassum, Natural Organic Material, Ship, Clouds, Marine Water, Sediment-Laden Water, Foam, Turbid Water, Shallow Water.
 
-| Feature            | Description                  |
-| ------------------ | ---------------------------- |
-| Satellite          | Sentinel-2                   |
-| Product            | Level-2A Surface Reflectance |
-| Study Area         | Arabian Gulf, UAE            |
-| Time Range         | 2025                         |
-| Spatial Resolution | 20 m                         |
-| Spectral Bands     | 6                            |
-| Derived Indices    | 6                            |
-| Texture Features   | 3                            |
+Waves, Cloud Shadows, Wakes, and Mixed Water are merged into Marine Water, matching the MARIDA paper.
 
-### Model Input
+Labels are sparse. Unlabelled pixels are ignored during training and evaluation. Marine Debris is roughly 0.4% of labelled pixels, so class weighting and optional oversampling are used during training.
 
-```text
-6 Sentinel-2 spectral bands
-            +
-6 spectral indices
-            +
-3 texture features
-            ↓
-15-channel feature representation
-            ↓
-        MSSD-Net
-```
+### Pretrained checkpoints and prepared data
 
-Detailed preprocessing is documented in:
+All pretrained weights, prepared datasets, and rendered figures are hosted on Google Drive.
 
-[`docs/PREPROCESSING.md`](docs/PREPROCESSING.md)
+| Artifact                         | Description | Link |
+|----------------------------------| ----------- | ---- |
+| Patches and splits               | Ready to use with `MSSD-Net/data/` | [Google Drive](https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID) |
+| MADOS stacked patches and splits | Ready to use with `--mados_path` | [Google Drive](https://drive.google.com/drive/folders/REPLACE-WITH-DATA-FOLDER-ID) |
+| Trained checkpoints              | U-Net, Random Forest, all MSSD-Net variants | [Google Drive](https://drive.google.com/drive/folders/REPLACE-WITH-CKPT-FOLDER-ID) |
+| Qualitative figures              | Per-patch RGB / label / prediction renders | [Google Drive](https://drive.google.com/drive/folders/1ZAEIuOSuvwX1IzzUXeZEm4ezCXIxMIRT) |
+
+After unzipping `checkpoints.zip`, `MSSD-Net/trained_models/` should contain `unet/`, `rf_ss_si_glcm/`, `baseline/`, `full/`, and `only_residual/` subfolders.
+
+---
+
+## Results Summary
+
+Full tables are in [MSSD-Net/docs/RESULTS.md](MSSD-Net/docs/RESULTS.md).
+
+### MARIDA paper baselines (MARIDA test split)
+
+| Model | Marine Debris IoU | Marine Debris F1 | Mean IoU | Mean F1 |
+| ----- | ----------------: | ---------------: | -------: | ------: |
+| RF_SS | 0.55 | 0.71 | 0.57 | 0.69 |
+| RF_SS+SI | **0.67** | **0.80** | 0.59 | 0.70 |
+| RF_SS+SI+GLCM | 0.65 | 0.79 | **0.69** | **0.79** |
+| U-Net | 0.33 | 0.50 | 0.57 | 0.69 |
+
+### MSSD-Net variants (held-out test split)
+
+| Variant | Marine Debris F1 | Marine Debris IoU | Macro F1 | Macro mIoU |
+| ------- | ---------------: | ----------------: | -------: | ---------: |
+| **baseline** | **69.06%** | **52.74%** | **75.31%** | **64.69%** |
+| only_residual | 67.53% | 50.98% | 74.88% | 64.07% |
+| full | 56.77% | 39.63% | 71.69% | 60.11% |
+
+**Main finding:** the plain Swin-UNet V2 baseline outperforms the full MSSD-Net on the target Marine Debris class by 12.29 F1 points. The additional architectural modules help larger, more spatially coherent classes but not the sparse debris target.
+
+The two tables use different test sets and cannot be compared directly.
 
 ---
 
 ## Repository Structure
 
-```text
+```
 mssd-arab-youth-space-hackathon/
-│
-├── README.md
-│
-├── docs/
-│   ├── PREPROCESSING.md
-│   ├── RESULTS.md
-│   └── TECHNICAL_DOCUMENT.md
-│
-├── data/
-│   └── README.md
-│
-├── models/
-│   └── ...
-│
-├── notebooks/
-│   └── ...
-│
-├── src/
-│   └── ...
-│
-└── app/
-    └── ...
+|
+|-- README.md                This file
+|-- assets/
+|   `-- noaa_marine_debris_pathways.png      
+|
+|-- MSSD-Net/                Deep learning pipeline (see MSSD-Net/README.md)
+|   |-- Dockerfile
+|   |-- docker-compose.yml
+|   |-- requirements.txt
+|   |-- docs/
+|   `-- ...                  Training, evaluation, and figure scripts
+|
+`-- MSSD-App/                Flutter application (see MSSD-App/README.md)
+    |-- Dockerfile
+    |-- docker-compose.yml
+    |-- pubspec.yaml
+    `-- ...                  App source
 ```
 
 ---
 
-## Repository Branches
+## Documentation
 
-| Branch     | Purpose               | Contents                                      |
-| ---------- | --------------------- | --------------------------------------------- |
-| `main`     | Project documentation | README, technical documentation, results      |
-| `mssd-net` | Model development     | Preprocessing, training, inference, notebooks |
-| `mssd-app` | Application           | Streamlit/FastAPI interface, maps, reports    |
-
-### Clone the Model Branch
-
-```bash
-git clone -b mssd-net https://github.com/AfefGuesmi/mssd-arab-youth-space-hackathon.git
-```
-
-### Clone the Application Branch
-
-```bash
-git clone -b mssd-app https://github.com/AfefGuesmi/mssd-arab-youth-space-hackathon.git
-```
-
-
----
-
-## Getting Started
-
-### Requirements
-
-The project uses Python and common geospatial and deep learning libraries.
-
-Typical dependencies include:
-
-```text
-Python 3.x
-PyTorch
-Torchvision
-NumPy
-Rasterio
-OpenCV
-scikit-image
-GeoPandas
-Shapely
-Matplotlib
-```
-
-The application layer may additionally use:
-
-```text
-Streamlit
-FastAPI
-Folium
-```
-
-### Installation
-
-```bash
-git clone https://github.com/YOUR-USERNAME/mssd-arab-youth-space-hackathon.git
-
-cd mssd-arab-youth-space-hackathon
-
-pip install -r requirements.txt
-```
-
-Update the installation and inference commands above according to the final repository implementation.
-
----
-
-## Results
-
-Quantitative and qualitative evaluation is documented in:
-
-[`docs/RESULTS.md`](docs/RESULTS.md)
-
-### Qualitative Results
-
-Visual examples of the model predictions are available here:
-
-[Qualitative Results Folder](https://drive.google.com/drive/folders/1ZAEIuOSuvwX1IzzUXeZEm4ezCXIxMIRT?usp=drive_link)
-
-Each scene contains:
-
-```text
-scene/
-├── input.png
-├── label.png
-└── prediction.png
-```
-
-| File             | Description                  |
-| ---------------- | ---------------------------- |
-| `input.png`      | Sentinel-2 RGB visualization |
-| `label.png`      | Reference debris mask        |
-| `prediction.png` | MSSD-Net predicted mask      |
-
----
-
-## Technical Documentation
-
-For a detailed description of the methodology, see:
-
-[`docs/TECHNICAL_DOCUMENT.md`](docs/TECHNICAL_DOCUMENT.md)
-
-The technical document covers:
-
-* Dataset construction
-* Sentinel-2 preprocessing
-* Feature engineering
-* Model architecture
-* Training methodology
-* Loss functions
-* Evaluation metrics
-* Quantitative results
-* Qualitative results
-* Limitations
-* Future work
+| Document | Description |
+| -------- | ----------- |
+| [MSSD-Net/README.md](MSSD-Net/README.md) | Deep learning: installation, training, evaluation, figures, Docker |
+| [MSSD-App/README.md](MSSD-App/README.md) | Flutter app: features, setup, deployment, Docker |
+| [MSSD-Net/docs/PREPROCESSING.md](MSSD-Net/docs/PREPROCESSING.md) | Data preprocessing pipeline |
+| [MSSD-Net/docs/TECHNICAL_DOCUMENT.md](MSSD-Net/docs/TECHNICAL_DOCUMENT.md) | Full methodology |
+| [MSSD-Net/docs/RESULTS.md](MSSD-Net/docs/RESULTS.md) | Detailed evaluation results |
+| [MSSD-Net/docs/BASELINES.md](MSSD-Net/docs/BASELINES.md) | U-Net and Random Forest baselines |
 
 ---
 
 ## Limitations
 
-Satellite-based marine debris detection has several inherent limitations.
+MSSD predictions are potential debris detections requiring further validation, not definitive confirmation of physical debris.
 
-MSSD predictions should therefore be interpreted as **potential debris detections requiring further validation**, rather than definitive confirmation of physical debris.
+- Small debris can fall below Sentinel-2's effective spatial resolution.
+- Sun glint and surface reflections can produce false positives.
+- Floating algae, foam, and turbid water can have similar spectral responses.
+- Limited ground-truth data affects generalization.
+- Performance varies across geography, season, and environmental conditions.
 
-Important limitations include:
-
-* Small debris may be below the effective spatial resolution of Sentinel-2.
-* Sun glint and surface reflections can generate false positives.
-* Floating algae and other natural materials can have similar spectral characteristics.
-* Turbid coastal waters can reduce detection performance.
-* Limited ground-truth data can affect model generalization.
-* Performance may vary across geographic, seasonal, and environmental conditions.
-
-MSSD is therefore designed as a **decision-support and prioritization system**, not as a replacement for field verification.
+MSSD is designed as a decision-support and prioritization system, not a replacement for field verification.
 
 ---
 
 ## Future Work
 
-### Multi-sensor Fusion
-
-Integrate additional Earth observation sources such as:
-
-* Sentinel-1 SAR
-* Higher-resolution optical imagery
-* Additional satellite missions
-
-### Temporal Monitoring
-
-Extend the system from individual scenes to time-series analysis in order to identify:
-
-* Persistent debris accumulation
-* Recurring hotspots
-* Temporal changes in debris concentration
-* Seasonal patterns
-
-### Model Improvements
-
-Future research could explore:
-
-* Improved transformer architectures
-* Self-supervised pretraining
-* Multimodal learning
-* Temporal modeling
-* Uncertainty estimation
-
-### Operational Deployment
-
-The long-term objective is an automated monitoring pipeline:
-
-```text
-Satellite Acquisition
-        ↓
-Automatic Preprocessing
-        ↓
-AI Inference
-        ↓
-Debris Hotspot Detection
-        ↓
-Geospatial Alert
-        ↓
-Human Verification
-        ↓
-Inspection / Cleanup Prioritization
-```
-
----
-
-## Potential Impact
-
-MSSD demonstrates how **Earth observation, artificial intelligence, and geospatial analysis** can be combined to support marine environmental monitoring.
-
-Potential applications include:
-
-* Marine pollution monitoring
-* Coastal environmental management
-* Plastic pollution research
-* Fisheries and ecosystem protection
-* Marine monitoring operations
-* Cleanup operation planning
-
-The broader objective is to make marine debris surveillance more **scalable, repeatable, and data-driven**.
-
----
-
-## License
-
-### Code
-
-MIT License.
-
-### Sentinel-2 Imagery
-
-Copernicus Sentinel-2 data is used in accordance with the applicable Copernicus data terms and attribution requirements.
-
-### Documentation
-
-Documentation is released under **CC BY 4.0**, unless otherwise specified.
+- **Multi-sensor fusion:** Sentinel-1 SAR, higher-resolution optical imagery, additional missions.
+- **Temporal monitoring:** persistent accumulation hotspots, recurring patterns, seasonal trends.
+- **Model improvements:** improved transformer variants, self-supervised pretraining, multimodal learning, uncertainty estimation.
+- **Operational deployment:** automated acquisition, preprocessing, inference, hotspot detection, geospatial alert, human verification, and cleanup prioritization.
 
 ---
 
 ## Team
 
-**Arab Youth Space Hackathon - 813 Challenge**
-**Theme 03: Marine & Water Security**
+**Arab Youth Space Hackathon, 813 Challenge**
+**Theme 03: Marine and Water Security**
 
-* **Besma Guesmi** - Tech Lead
-* **Afef Guesmi** - ML R&D, PhD Student in EO
-* **Dorra Guesmi** - Full Stack Engineer
-
----
-
-## Project Resources
-
-| Resource                                                                           | Description              |
-| ---------------------------------------------------------------------------------- | ------------------------ |
-| [`README.md`](README.md)                                                           | Project overview         |
-| [`PREPROCESSING.md`](docs/PREPROCESSING.md)                                        | Data preprocessing       |
-| [`RESULTS.md`](docs/RESULTS.md)                                                    | Model evaluation         |
-| [`TECHNICAL_DOCUMENT.md`](docs/TECHNICAL_DOCUMENT.md)                              | Technical documentation  |
-| [Marine Debris — NOAA](https://marinedebris.noaa.gov/)                             | Marine debris background |
-| [Qualitative Results](https://drive.google.com/drive/folders/1ZAEIuOSuvwX1IzzUXeZEm4ezCXIxMIRT?usp=drive_link) | Visual predictions       |
+- **Besma Guesmi**, Tech Team Lead
+- **Afef Guesmi**, ML R&D, PhD Student in Earth Observation
+- **Dorra Guesmi**, Full Stack Engineer
 
 ---
 
-## Hackathon Project
+## License
 
-**MSSD: Marine Surface Debris Surveillance**
+- Code: MIT
+- Sentinel-2 imagery: used under the Copernicus data terms
+- Documentation: CC BY 4.0
 
-**Arab Youth Space Hackathon-813 Challenge, 2026**
-**Theme 03: Marine & Water Security**
+---
 
-> From satellite imagery to actionable marine-debris intelligence.
+## References
+
+- Kikaki, K., Kakogeorgiou, I., Mikeli, P., Raitsos, D. E., Karantzalos, K. (2022). *MARIDA: A benchmark for Marine Debris detection from Sentinel-2 remote sensing data.* PLOS ONE.
+- Kikaki, K., et al. (2024). *MADOS: A multi-class marine debris dataset for the detection of marine litter in Sentinel-2 imagery.*
+- [NOAA Marine Debris Program](https://marinedebris.noaa.gov/)
+
+---
+
+**From satellite imagery to actionable marine-debris intelligence.**
