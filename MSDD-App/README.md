@@ -1,4 +1,4 @@
-# MSDD - Marine Debris Detection App
+# MSDD - Marine Surface Debris Detection App
 
 MSDD is a Flutter app that shows where marine debris was detected in satellite imagery. The detections are read from a CSV report, grouped into zones, and drawn on an interactive map. Each zone has a danger level, a recommended action and a qualitative-result image, and can be exported as a PDF report.
 
@@ -141,7 +141,7 @@ docker run -d --name msdd -p 8080:80 msdd
 docker stop msdd && docker rm msdd
 ```
 
-Optional — build the Android APK with Docker (builds it, does not run it):
+(Optional) build the Android APK with Docker (builds it, does not run it):
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app ghcr.io/cirruslabs/flutter:stable flutter build apk --release
