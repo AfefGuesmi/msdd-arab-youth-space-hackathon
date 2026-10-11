@@ -143,7 +143,7 @@ docker run -d --name msdd -p 8080:80 msdd
 docker stop msdd && docker rm msdd
 ```
 
-Optional — build the Android APK with Docker (builds it, does not run it):
+Optional: build the Android APK with Docker (builds it, does not run it):
 
 ```bash
 docker run --rm -v "$PWD":/app -w /app ghcr.io/cirruslabs/flutter:stable flutter build apk --release
